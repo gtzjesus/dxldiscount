@@ -8,17 +8,15 @@ interface ProductGridProps {
 export default function ProductGrid({ products }: ProductGridProps) {
   if (products.length === 0) {
     return (
-      <div className="text-center py-20 bg-white border border-dashed border-slate-200 m-4">
+      <div className="max-w-md mx-auto text-center py-20 bg-white border border-dashed border-slate-200 my-4">
         <p className="text-slate-500 text-sm font-medium">No products available.</p>
       </div>
     );
   }
 
   return (
-    // Contenedor principal que cubre todo a lo ancho con líneas exteriores y divisorias finas
-    <div className="w-full bg-slate-200 border-y border-slate-200 grid grid-cols-2">
+    <div className="max-w-2xl mx-auto w-full bg-slate-200 border-y border-slate-200 grid grid-cols-2">
       {products.map((product, index) => {
-        // Determinamos si está en la columna derecha para ponerle una línea divisoria vertical fina a la izquierda
         const isRightColumn = index % 2 !== 0;
 
         return (
