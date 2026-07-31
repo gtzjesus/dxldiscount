@@ -1,73 +1,85 @@
-import { defineType, defineField } from 'sanity';
+import { TrolleyIcon } from '@sanity/icons';
+import { defineField, defineType } from 'sanity';
 
-export default defineType({
+export const product = defineType({
   name: 'product',
   title: 'Products',
   type: 'document',
+  icon: TrolleyIcon,
+
   fields: [
     defineField({
-      name: 'name',
-      title: 'Product Name',
+      name: 'itemNumber',
+      title: 'Item Number / SKU',
       type: 'string',
-      validation: (Rule) => Rule.required().error('Product name is required'),
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'name',
+      title: 'Name',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'slug',
-      title: 'Slug (URL)',
+      title: 'Slug',
       type: 'slug',
-      options: {
-        source: 'name',
-        maxLength: 96,
-      },
-      validation: (Rule) => Rule.required().error('Click "Generate" to create a slug'),
-    }),
-    defineField({
-      name: 'sku',
-      title: 'SKU Code',
-      type: 'string',
-      description: 'Unique inventory code (e.g. FRG-TSHIRT-001)',
-      validation: (Rule) => Rule.required().error('SKU is required'),
+      options: { source: 'name', maxLength: 96 },
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'price',
-      title: 'Price (USD)',
+      title: 'Price ($USD)',
       type: 'number',
-      validation: (Rule) => Rule.required().min(0).error('Price must be a positive number'),
+      validation: (Rule) => Rule.required().min(0),
     }),
     defineField({
-      name: 'images',
-      title: 'Product Images (Up to 5)',
+      name: 'stock',
+      title: 'Stock Quantity',
+      type: 'number',
+      initialValue: 0,
+      validation: (Rule) => Rule.required().min(0),
+    }),
+    defineField({
+      name: 'image',
+      title: 'Main Image',
+      type: 'image',
+      options: { hotspot: true },
+      description: 'Thumbnail or main display image.',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'extraImages',
+      title: 'Additional Images',
       type: 'array',
-      of: [
-        {
-          type: 'image',
-          options: { hotspot: true },
-        },
-      ],
+      of: [{ type: 'image', options: { hotspot: true } }],
       validation: (Rule) =>
-        Rule.required()
-          .min(1)
-          .max(5)
-          .error('You must upload between 1 and 5 images'),
+        Rule.max(4).error('You can upload up to 4 additional images.'),
     }),
     defineField({
       name: 'description',
       title: 'Description',
       type: 'text',
-      rows: 4,
+    }),
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'reference',
+      to: [{ type: 'category' }],
     }),
   ],
+
   preview: {
     select: {
       title: 'name',
-      subtitle: 'sku',
-      media: 'images.0',
+      media: 'image',
       price: 'price',
+      itemNumber: 'itemNumber',
     },
-    prepare({ title, subtitle, media, price }) {
+    prepare({ title, media, price, itemNumber }) {
       return {
-        title: title || 'Untitled',
-        subtitle: `${subtitle ? `[SKU: ${subtitle}]` : ''} - $${price || 0} USD`,
+        title: title ? `${title} (${itemNumber})` : 'Untitled',
+        subtitle: price !== undefined ? `$${price}` : 'No price set',
         media,
       };
     },
