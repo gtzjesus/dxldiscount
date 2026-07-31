@@ -1,11 +1,9 @@
-import { TrolleyIcon } from '@sanity/icons';
 import { defineField, defineType } from 'sanity';
 
-export const product = defineType({
+export default defineType({
   name: 'product',
   title: 'Products',
   type: 'document',
-  icon: TrolleyIcon,
 
   fields: [
     defineField({
