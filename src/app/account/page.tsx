@@ -1,10 +1,11 @@
 'use client';
 
-import { useUser, UserButton } from '@clerk/nextjs';
-import { User, Shield, Zap } from 'lucide-react';
+import { useUser, UserButton, useClerk } from '@clerk/nextjs';
+import { User, Shield, Zap, LogOut } from 'lucide-react';
 
 export default function AccountPage() {
   const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
 
   return (
     <div className="min-h-screen bg-[#121212] text-zinc-100 pb-32 pt-12 px-4 max-w-2xl mx-auto selection:bg-orange-500 selection:text-black">
@@ -14,7 +15,7 @@ export default function AccountPage() {
 
       <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 mb-6">
         {isSignedIn ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <UserButton appearance={{ elements: { avatarBox: 'w-16 h-16 rounded-2xl' } }} />
               <div>
@@ -22,8 +23,16 @@ export default function AccountPage() {
                 <p className="text-xs font-mono text-zinc-500">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
             </div>
-            <div className="pt-4 border-t border-zinc-800/80 flex items-center gap-2 text-xs font-mono text-orange-500">
-              <Zap className="w-4 h-4" /> Status: Authenticated & Connected
+            <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-mono text-orange-500">
+                <Zap className="w-4 h-4" /> Status: Authenticated & Connected
+              </div>
+              <button
+                onClick={() => signOut({ redirectUrl: '/' })}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-all rounded-xl"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Sign Out
+              </button>
             </div>
           </div>
         ) : (
