@@ -1,7 +1,6 @@
 import { client } from '@/sanity/lib/client';
 import ProductGrid from '@/components/products/ProductGrid';
 
-// Definición del tipo de producto
 export interface Product {
   _id: string;
   name: string;
@@ -14,7 +13,6 @@ export interface Product {
   categoryName?: string;
 }
 
-// Función para obtener los productos desde Sanity
 async function getProducts(): Promise<Product[]> {
   const QUERY = `*[_type == "product"] | order(_createdAt desc) {
     _id,
@@ -35,9 +33,9 @@ export default async function HomePage() {
   const products = await getProducts();
 
   return (
-    <div className="min-h-screen">
-      <main className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-12 sm:py-16">
-        {/* Renderizado mediante Componente Modular */}
+    <div className="min-h-screen bg-slate-50">
+      {/* 100% de ancho sin márgenes restrictivos laterales */}
+      <main className="w-full mx-auto py-6 sm:py-10">
         <ProductGrid products={products} />
       </main>
     </div>
