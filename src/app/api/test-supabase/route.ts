@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       }
     );
 
-    // 3. Intentamos insertar la orden de prueba
+    // 3. Intentamos insertar la orden de prueba con los campos originales
     const { data, error } = await supabase
       .from('orders')
       .insert([

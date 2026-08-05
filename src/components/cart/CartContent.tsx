@@ -10,6 +10,33 @@ export default function CartContent() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCartStore();
   const { isSignedIn } = useUser();
   const [showSignIn, setShowSignIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Función para manejar el checkout de Stripe
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url; // Redirige a la pasarela de Stripe
+      } else {
+        alert(data.error || 'Hubo un error al procesar el pago');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error de red:', error);
+      setLoading(false);
+    }
+  };
 
   // Si no está autenticado y hace click en checkout, mostramos el componente SignIn de Clerk
   if (!isSignedIn && showSignIn) {
@@ -125,13 +152,11 @@ export default function CartContent() {
 
         {isSignedIn ? (
           <button
-            onClick={() => {
-              // AQUÍ VA TU LLAMADA REAL A STRIPE O TU API DE CHECKOUT (sin alertas)
-              console.log('Procediendo a pasarela de pagos...');
-            }}
-            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99]"
+            onClick={handleCheckout}
+            disabled={loading || items.length === 0}
+            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50"
           >
-            Proceed to Checkout
+            {loading ? 'Redirecting to Stripe...' : 'Proceed to Checkout'}
           </button>
         ) : (
           <button
