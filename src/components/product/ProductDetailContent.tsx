@@ -17,8 +17,14 @@ interface ProductDetailContentProps {
 
 export default function ProductDetailContent({ product }: ProductDetailContentProps) {
   const addItem = useCartStore((state) => state.addItem);
+  const items = useCartStore((state) => state.items);
+
+  // Verificamos si este producto ya está agregado en el carrito
+  const isAlreadyInCart = items.some((item) => item._id === product._id);
 
   const handleAddToCart = () => {
+    if (isAlreadyInCart || product.stock === 0) return;
+
     addItem({
       _id: product._id,
       name: product.name,
@@ -74,14 +80,20 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
       {/* Botón conectado a Zustand */}
       <button
         onClick={handleAddToCart}
-        disabled={product.stock === 0}
+        disabled={product.stock === 0 || isAlreadyInCart}
         className={`w-full py-4 rounded-xl font-bold text-sm tracking-wide transition-all shadow-sm ${
-          product.stock > 0
-            ? 'bg-slate-900 text-white  active:scale-[0.99]'
-            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+          product.stock === 0
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+            : isAlreadyInCart
+            ? 'bg-emerald-600 text-white cursor-default'
+            : 'bg-slate-900 text-white active:scale-[0.99] hover:bg-slate-800'
         }`}
       >
-        {product.stock > 0 ? 'Add to Cart' : 'Temporarily Out of Stock'}
+        {product.stock === 0
+          ? 'Temporarily Out of Stock'
+          : isAlreadyInCart
+          ? 'Added'
+          : 'Add to Cart'}
       </button>
     </div>
   );

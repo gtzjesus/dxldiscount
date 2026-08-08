@@ -17,9 +17,9 @@ export default function CartEmpty() {
       </p>
       <Link
         href="/"
-        className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm active:scale-[0.99]"
+        className="px-6 py-3 bg-slate-900 text-white  text-xs font-bold hover:bg-slate-800 transition-all shadow-sm active:scale-[0.99]"
       >
-        Explore Catalog
+        Explore DXL Shop
       </Link>
     </div>
   );

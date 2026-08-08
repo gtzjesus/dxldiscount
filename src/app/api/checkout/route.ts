@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
-// Inicialización limpia sin forzar versión con sufijos extraños
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {
@@ -12,12 +12,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { items } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: 'Cuerpo de petición inválido' }, { status: 400 });
+    }
 
-    if (!items || items.length === 0) {
+    const { items, email } = body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    // Usamos service role key para evitar pedos de RLS al insertar del lado del servidor
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('SUPABASE ERROR: Faltan las variables de entorno de Supabase');
+      return NextResponse.json({ error: 'Error de configuración del servidor' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const totalAmount = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+
+    // Inserción en Supabase usando 'amount_total' que es como quedó en la tabla limpia
+    const { data: orderData, error: dbError } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id: userId,
+          clerk_user_id: userId,
+          customer_email: email || '',
+          amount_total: totalAmount, // Corregido al nombre exacto de la tabla
+          status: 'pending',
+          items_json: items,
+        },
+      ])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('SUPABASE DB ERROR:', JSON.stringify(dbError, null, 2));
+      return NextResponse.json({ error: `Error en Base de Datos: ${dbError.message}` }, { status: 500 });
+    }
+
+    if (!orderData || !orderData.id) {
+      return NextResponse.json({ error: 'No se pudo generar el registro de la orden' }, { status: 500 });
+    }
+
+    // Preparar items para Stripe (tal cual lo tenías)
     const lineItems = items.map((item: any) => ({
       price_data: {
         currency: 'usd',
@@ -25,31 +68,37 @@ export async function POST(req: Request) {
           name: item.name,
           images: item.imageUrl ? [item.imageUrl] : [],
         },
-        unit_amount: Math.round(item.price * 100), // Stripe maneja los precios en centavos
+        unit_amount: Math.round(item.price * 100),
       },
       quantity: item.quantity,
     }));
 
+    // Crear sesión en Stripe (tal cual lo tenías)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      
-      // 👉 ESTO ES LO ÚNICO QUE FALTABA: Pide dirección de envío obligatoria
+      customer_email: email || undefined,
       shipping_address_collection: {
-        allowed_countries: ['US', 'MX'], // Ajusta los países de envío según tu tienda
+        allowed_countries: ['US', 'MX'],
       },
-
       success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/cart`,
       metadata: {
         clerkUserId: userId,
+        supabaseOrderId: String(orderData.id),
       },
     });
 
+    // Actualizar la orden con el stripe_session_id
+    await supabase
+      .from('orders')
+      .update({ stripe_session_id: session.id })
+      .eq('id', orderData.id);
+
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error('Error en Stripe Checkout:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Error crítico en API Checkout:', err);
+    return NextResponse.json({ error: err.message || 'Error interno del servidor' }, { status: 500 });
   }
 }

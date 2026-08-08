@@ -3,17 +3,16 @@
 import { useCartStore } from '@/store/useCartStore';
 import Image from 'next/image';
 import { Trash2, Plus, Minus } from 'lucide-react';
-import { useUser, SignIn } from '@clerk/nextjs';
-import { useState } from 'react';
+import { useUser, SignInButton } from '@clerk/nextjs';
+import { useState, useEffect, useCallback } from 'react';
 
 export default function CartContent() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCartStore();
-  const { isSignedIn } = useUser();
-  const [showSignIn, setShowSignIn] = useState(false);
+  const { isSignedIn, user } = useUser();
   const [loading, setLoading] = useState(false);
 
-  // Función para manejar el checkout de Stripe
-  const handleCheckout = async () => {
+  // Función para manejar el checkout de Stripe enviando el email del usuario
+  const handleCheckout = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/checkout', {
@@ -21,7 +20,10 @@ export default function CartContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ 
+          items,
+          email: user?.primaryEmailAddress?.emailAddress // Pasamos el correo de Clerk
+        }),
       });
 
       const data = await response.json();
@@ -36,40 +38,39 @@ export default function CartContent() {
       console.error('Error de red:', error);
       setLoading(false);
     }
-  };
+  }, [items, user]);
 
-  // Si no está autenticado y hace click en checkout, mostramos el componente SignIn de Clerk
-  if (!isSignedIn && showSignIn) {
-    return (
-      <div className="min-h-screen bg-white text-slate-900 pt-10 px-4 sm:px-6 max-w-xl mx-auto flex flex-col items-center justify-center">
-        {/* <button
-          onClick={() => setShowSignIn(false)}
-          className="self-start mb-6 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          ← Back to Cart
-        </button> */}
-        <SignIn forceRedirectUrl="/cart" routing="hash" />
-      </div>
-    );
-  }
+  // Si el usuario acaba de iniciar sesión y venía de intentar pagar, disparamos el checkout automáticamente
+  useEffect(() => {
+    const shouldCheckout = sessionStorage.getItem('pending_checkout');
+    if (isSignedIn && shouldCheckout === 'true' && items.length > 0 && !loading) {
+      sessionStorage.removeItem('pending_checkout');
+      handleCheckout();
+    }
+  }, [isSignedIn, items.length, loading, handleCheckout]);
+
+  // Guardamos la bandera antes de que Clerk abra el modal de autenticación
+  const handleSignInClick = () => {
+    sessionStorage.setItem('pending_checkout', 'true');
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900 pt-10 px-4 sm:px-6 max-w-xl mx-auto">
       {/* Cabecera */}
-      <div className="flex items-center justify-between mb-6 border-slate-100 pb-4">
+      <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
         <h1 className="text-2xl font-black tracking-tight">
           Shopping Cart
         </h1>
         <button
           onClick={clearCart}
-          className="text-xs font-semibold text-rose-700 transition-colors flex items-center gap-1 bg-rose-50 border-rose-100 px-3 py-1"
+          className="text-xs font-semibold text-rose-700 transition-colors flex items-center gap-1 bg-rose-50 border border-rose-100 px-3 py-1"
         >
           <Trash2 className="w-3 h-3" /> Clear Cart
         </button>
       </div>
 
       {/* Lista de Items */}
-      <div className="divide-y divide-slate-100 border-slate-100 mb-6">
+      <div className="divide-y divide-slate-100 border-b border-slate-100 mb-6">
         {items.map((item) => {
           const maxStock = item.stock ?? 99;
           const isAtMaxStock = item.quantity >= maxStock;
@@ -77,11 +78,11 @@ export default function CartContent() {
           return (
             <div
               key={item._id}
-              className="flex items-center justify-between gap-4 py-4 bg-slate-50/50"
+              className="flex items-center justify-between gap-4 py-4 bg-slate-50/50 px-2"
             >
               <div className="flex items-center gap-3">
                 {item.imageUrl ? (
-                  <div className="relative w-16 h-16 overflow-hidden bg-white border-slate-200 flex-shrink-0">
+                  <div className="relative w-16 h-16 overflow-hidden bg-white border border-slate-200 flex-shrink-0">
                     <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                   </div>
                 ) : (
@@ -97,10 +98,10 @@ export default function CartContent() {
 
                   {/* Controles de Cantidad (+ / -) */}
                   <div className="flex items-center gap-2 mt-2">
-                    <div className="flex items-center border-slate-200 bg-white overflow-hidden shadow-xs">
+                    <div className="flex items-center border border-slate-200 bg-white overflow-hidden shadow-xs">
                       <button
                         onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                        className="p-1 text-slate-600 transition-colors disabled:opacity-30"
+                        className="p-1 text-slate-600 transition-colors disabled:opacity-30 hover:bg-slate-100"
                         disabled={item.quantity <= 1}
                       >
                         <Minus className="w-3 h-3" />
@@ -110,7 +111,7 @@ export default function CartContent() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                        className="p-1 text-slate-600 transition-colors disabled:opacity-30"
+                        className="p-1 text-slate-600 transition-colors disabled:opacity-30 hover:bg-slate-100"
                         disabled={isAtMaxStock}
                         title={isAtMaxStock ? 'Max stock reached' : ''}
                       >
@@ -129,7 +130,7 @@ export default function CartContent() {
 
               <button
                 onClick={() => removeItem(item._id)}
-                className="text-xs text-rose-600 transition-colors p-2 font-mono bg-white border-slate-200"
+                className="text-xs text-rose-600 transition-colors p-2 font-mono bg-white border border-slate-200 hover:bg-rose-50"
                 title="Remove item"
               >
                 ✕
@@ -140,8 +141,8 @@ export default function CartContent() {
       </div>
 
       {/* Sección de Total y Checkout */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center bg-slate-50 border-slate-200/80 p-4">
+      <div className="space-y-4 pb-10">
+        <div className="flex justify-between items-center bg-slate-50 border border-slate-200/80 p-4">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             Estimated Total 
           </span>
@@ -154,17 +155,21 @@ export default function CartContent() {
           <button
             onClick={handleCheckout}
             disabled={loading || items.length === 0}
-            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50"
+            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 hover:bg-slate-800"
           >
             {loading ? 'Redirecting to Stripe...' : 'Proceed to Checkout'}
           </button>
         ) : (
-          <button
-            onClick={() => setShowSignIn(true)}
-            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99]"
-          >
-            Sign in to Checkout
-          </button>
+          <div onClick={handleSignInClick}>
+            <SignInButton mode="modal" forceRedirectUrl="/cart">
+              <button
+                type="button"
+                className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] hover:bg-slate-800"
+              >
+                Checkout
+              </button>
+            </SignInButton>
+          </div>
         )}
       </div>
     </div>
