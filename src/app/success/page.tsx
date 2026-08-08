@@ -4,7 +4,6 @@ import ClearCartClient from '@/components/success/ClearCartClient';
 import SuccessReceipt from '@/components/success/SuccessReceipt';
 import SuccessActions from '@/components/success/SuccessActions';
 
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 interface SuccessPageProps {
@@ -18,6 +17,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   let customerEmail = '';
   let amountTotal = 0;
   let paymentStatus = 'SUCCESS';
+  let shippingDetails = null; // Declaramos la variable aquí para usarla también en el render
 
   if (sessionId) {
     try {
@@ -28,7 +28,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
       const orderId = session.metadata?.supabaseOrderId;
       const sessionAny = session as any;
-      const shippingDetails = sessionAny.shipping_details || sessionAny.customer_details;
+      shippingDetails = sessionAny.shipping_details || sessionAny.customer_details;
 
       if (orderId) {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,6 +63,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           customerEmail={customerEmail}
           amountTotal={amountTotal}
           paymentStatus={paymentStatus}
+          shippingDetails={shippingDetails}
         />
         <SuccessActions />
       </div>
