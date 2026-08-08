@@ -1,5 +1,9 @@
-import { client } from '@/sanity/lib/client';
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
 import ProductGrid from '@/components/products/ProductGrid';
+import ProductFilterNav from '@/components/products/ProductFilterNav'; // 👈 Tu componente de filtro
+import { client } from '@/sanity/lib/client';
 
 export interface Product {
   _id: string;
@@ -13,30 +17,62 @@ export interface Product {
   categoryName?: string;
 }
 
-async function getProducts(): Promise<Product[]> {
-  const QUERY = `*[_type == "product"] | order(_createdAt desc) {
-    _id,
-    name,
-    slug,
-    price,
-    stock,
-    itemNumber,
-    description,
-    "imageUrl": image.asset->url,
-    "categoryName": category->title
-  }`;
+export default function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('all');
 
-  return await client.fetch(QUERY, {}, { cache: 'no-store' });
-}
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const QUERY = `*[_type == "product"] | order(_createdAt desc) {
+          _id,
+          name,
+          slug,
+          price,
+          stock,
+          itemNumber,
+          description,
+          "imageUrl": image.asset->url,
+          "categoryName": category->title
+        }`;
+        const data = await client.fetch(QUERY, {}, { cache: 'no-store' });
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
-export default async function HomePage() {
-  const products = await getProducts();
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'all') return products;
+    return products.filter((p) => p.categoryName === activeCategory);
+  }, [products, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 100% de ancho sin márgenes restrictivos laterales */}
-      <main className="w-full mx-auto py-6 sm:py-10">
-        <ProductGrid products={products} />
+    <div className="min-h-screen bg-slate-50 py-6">
+      <main className="w-full">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="font-mono text-xs text-slate-400 animate-pulse uppercase tracking-widest">
+              Loading...
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* El filtro alineado con el mismo ancho del grid */}
+            <ProductFilterNav 
+              activeCategory={activeCategory} 
+              onCategoryChange={setActiveCategory} 
+              products={products} 
+            />
+            {/* El Grid de productos justo abajo */}
+            <ProductGrid products={filteredProducts} />
+          </>
+        )}
       </main>
     </div>
   );
