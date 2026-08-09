@@ -8,6 +8,7 @@ export interface Product {
   stock: number;
   itemNumber: string;
   description?: string;
+  conditionNotes?: string; // 👈 1. Añadido a la interfaz
   imageUrl?: string;
   categoryName?: string;
 }
@@ -21,9 +22,10 @@ export async function getAllProducts(): Promise<Product[]> {
     stock,
     itemNumber,
     description,
+    conditionNotes, 
     "imageUrl": image.asset->url,
     "categoryName": category->title
   }`;
 
-  return await client.fetch(QUERY, {}, { next: { revalidate: 0 } }); // 👈 revalidate: 0 para que no guarde caché mientras desarrollamos
+  return await client.fetch(QUERY, {}, { next: { revalidate: 0 } });
 }

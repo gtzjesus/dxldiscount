@@ -58,7 +58,7 @@ export default function HomePage() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <p className="font-mono text-xs text-slate-400 animate-pulse uppercase tracking-widest">
-              Loading...
+              Loading Dxl Products...
             </p>
           </div>
         ) : (

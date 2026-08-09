@@ -60,6 +60,12 @@ export default defineType({
       type: 'text',
     }),
     defineField({
+      name: 'conditionNotes',
+      title: 'Condition Notes / Open-Box Details',
+      type: 'text',
+      description: 'Explain any missing parts, opened packaging, or cosmetic details for returned items.',
+    }),
+    defineField({
       name: 'category',
       title: 'Category',
       type: 'reference',
