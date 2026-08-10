@@ -1,40 +1,78 @@
-'use client';
-
+import { auth } from '@clerk/nextjs/server';
+import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { Package } from 'lucide-react';
+import OrderCard from '@/components/orders/OrderCard';
+import { ShoppingBag } from 'lucide-react';
 
-export default function OrdersPage() {
-  // Aquí después conectaremos las órdenes reales de Supabase o Clerk
-  const hasOrders = false; 
+export default async function UserOrdersPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+        <p className="font-mono text-xs text-slate-600 mb-4">Please sign in to view your orders.</p>
+        <Link href="/" className="bg-black text-white text-xs font-mono uppercase tracking-widest px-6 py-3">
+          Return Home
+        </Link>
+      </div>
+    );
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl!, supabaseKey!);
+
+  // Consultamos las órdenes de este usuario en Supabase
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('clerk_user_id', userId)
+    .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-[#121212] text-zinc-100 pb-32 pt-12 px-4 max-w-2xl mx-auto selection:bg-orange-500 selection:text-black">
-      <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-4">
-        <h1 className="text-2xl font-black tracking-tight uppercase italic text-orange-500">Order History</h1>
-      </div>
-
-      {!hasOrders ? (
-        <div className="flex flex-col items-center justify-center text-center py-20">
-          <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 text-zinc-600">
-            <Package className="w-8 h-8" />
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col items-center px-4 py-16">
+      <div className="max-w-xl w-full">
+        {/* Header estilo Receipt */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-3">
+            <div className="w-14 h-14 bg-slate-50 border border-slate-200 flex items-center justify-center rounded-full">
+              <ShoppingBag className="w-6 h-6 text-slate-900" />
+            </div>
           </div>
-          <h2 className="text-lg font-black mb-2 tracking-tight uppercase italic text-zinc-300">No orders placed yet</h2>
-          <p className="text-zinc-500 text-xs mb-6 max-w-xs font-mono uppercase tracking-widest">
-            Your completed transactions and tracking info will appear here.
+          <h1 className="text-2xl font-black tracking-tight uppercase">
+            Order History
+          </h1>
+          <p className="text-xs text-slate-500 font-mono mt-1">
+            Track your past purchases and fulfillment status.
           </p>
-          <Link
-            href="/"
-            className="px-6 py-3 bg-orange-500 text-black font-black uppercase italic rounded-xl text-xs hover:bg-orange-400 transition-all shadow-lg shadow-orange-500/10"
-          >
-            Start Shopping
-          </Link>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Aquí mapearemos las órdenes reales después */}
-          <p className="text-xs font-mono text-zinc-400">List of orders goes here...</p>
-        </div>
-      )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 p-4 text-center font-mono text-xs text-red-600 mb-6">
+            Error loading your orders. Please try again later.
+          </div>
+        )}
+
+        {(!orders || orders.length === 0) ? (
+          <div className="bg-slate-50 border border-slate-200/80 p-8 text-center space-y-4">
+            <p className="text-xs font-mono text-slate-600">You haven't placed any orders yet.</p>
+            <div>
+              <Link 
+                href="/" 
+                className="inline-block bg-black text-white text-xs font-mono uppercase tracking-widest px-6 py-3 transition-opacity hover:opacity-80"
+              >
+                Start Shopping
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <OrderCard key={order.id} order={order} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

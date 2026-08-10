@@ -1,47 +1,48 @@
 'use client';
 
-import { useUser, UserButton, useClerk } from '@clerk/nextjs';
-import { User, Shield, Zap, LogOut } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
+import { Shield, Zap } from 'lucide-react';
+import AccountActions from '@/components/account/AccountActions';
 
 export default function AccountPage() {
   const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
 
   return (
-    <div className="min-h-screen bg-[#121212] text-zinc-100 pb-32 pt-12 px-4 max-w-2xl mx-auto selection:bg-orange-500 selection:text-black">
-      <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-4">
-        <h1 className="text-2xl font-black tracking-tight uppercase italic text-orange-500">User Profile</h1>
+    <div className="min-h-screen bg-white text-slate-950 pb-32 pt-12 px-4 max-w-2xl mx-auto selection:bg-orange-500 selection:text-white">
+      <div className="flex items-center justify-between mb-8 border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-black tracking-tight uppercase italic text-slate-900">
+          User Profile
+        </h1>
       </div>
 
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 mb-6">
+      <div className="bg-slate-50 border border-slate-200/80 p-6 shadow-xs">
         {isSignedIn ? (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <UserButton appearance={{ elements: { avatarBox: 'w-16 h-16 rounded-2xl' } }} />
+              <UserButton appearance={{ elements: { avatarBox: 'w-16 h-16 rounded-xl border border-slate-200' } }} />
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">{user?.fullName || 'Iron Member'}</h2>
-                <p className="text-xs font-mono text-zinc-500">{user?.primaryEmailAddress?.emailAddress}</p>
+                <h2 className="text-base font-bold text-slate-900">{user?.fullName || 'Member'}</h2>
+                <p className="text-xs font-mono text-slate-500">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
             </div>
-            <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-mono text-orange-500">
-                <Zap className="w-4 h-4" /> Status: Authenticated & Connected
+
+            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-mono text-emerald-600 bg-emerald-50 px-2 py-1 border border-emerald-100">
+                <Zap className="w-3.5 h-3.5" /> Status: Authenticated & Connected
               </div>
-              <button
-                onClick={() => signOut({ redirectUrl: '/' })}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-all rounded-xl"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Sign Out
-              </button>
+              <AccountActions />
             </div>
           </div>
         ) : (
-          <div className="text-center py-6">
-            <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto mb-3 text-slate-400">
               <Shield className="w-6 h-6" />
             </div>
-            <h2 className="text-sm font-bold text-zinc-300 mb-1">Guest Session</h2>
-            <p className="text-xs text-zinc-500 font-mono mb-4 uppercase">Sign in to sync your profile and orders across devices.</p>
+            <h2 className="text-sm font-bold text-slate-900 mb-1">Guest Session</h2>
+            <p className="text-xs text-slate-500 font-mono mb-4 uppercase">
+              Sign in to sync your profile and orders across devices.
+            </p>
           </div>
         )}
       </div>

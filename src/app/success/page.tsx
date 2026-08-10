@@ -17,7 +17,8 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   let customerEmail = '';
   let amountTotal = 0;
   let paymentStatus = 'SUCCESS';
-  let shippingDetails = null; // Declaramos la variable aquí para usarla también en el render
+  let shippingDetails = null;
+  let deliveryMethod = 'shipping';
 
   if (sessionId) {
     try {
@@ -27,6 +28,8 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
       paymentStatus = session.payment_status?.toUpperCase() || 'SUCCESS';
 
       const orderId = session.metadata?.supabaseOrderId;
+      deliveryMethod = session.metadata?.deliveryMethod || 'shipping';
+
       const sessionAny = session as any;
       shippingDetails = sessionAny.shipping_details || sessionAny.customer_details;
 
@@ -37,11 +40,15 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         if (supabaseUrl && supabaseKey) {
           const supabase = createClient(supabaseUrl, supabaseKey);
 
+          // Si es pickup se queda en 'pending' para que el empleado la gestione/entregue,
+          // si es shipping pasa a 'paid'. Todo esto actualizando UNICAMENTE la orden existente.
+          const newStatus = deliveryMethod === 'pickup' ? 'pending' : 'paid';
+
           await supabase
             .from('orders')
             .update({
-              status: 'paid',
-              shipping_details: shippingDetails,
+              status: newStatus,
+              shipping_details: deliveryMethod === 'pickup' ? null : shippingDetails,
               stripe_session_id: sessionId,
             })
             .eq('id', orderId);
@@ -64,6 +71,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           amountTotal={amountTotal}
           paymentStatus={paymentStatus}
           shippingDetails={shippingDetails}
+          deliveryMethod={deliveryMethod}
         />
         <SuccessActions />
       </div>

@@ -1,4 +1,4 @@
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Store, Truck } from 'lucide-react';
 
 interface SuccessReceiptProps {
   sessionId: string;
@@ -6,6 +6,7 @@ interface SuccessReceiptProps {
   amountTotal: number;
   paymentStatus: string;
   shippingDetails?: any;
+  deliveryMethod?: string;
 }
 
 export default function SuccessReceipt({
@@ -14,6 +15,7 @@ export default function SuccessReceipt({
   amountTotal,
   paymentStatus,
   shippingDetails,
+  deliveryMethod = 'shipping',
 }: SuccessReceiptProps) {
   return (
     <>
@@ -40,6 +42,23 @@ export default function SuccessReceipt({
               {paymentStatus}
             </span>
           </div>
+
+          {/* Delivery Method Badge */}
+          <div className="flex justify-between items-center border-t border-slate-100 pt-2">
+            <span className="text-slate-400">Fulfillment:</span>
+            <span className="text-slate-800 font-bold uppercase flex items-center gap-1">
+              {deliveryMethod === 'pickup' ? (
+                <>
+                  <Store className="w-3.5 h-3.5 text-amber-600" /> Local Pickup
+                </>
+              ) : (
+                <>
+                  <Truck className="w-3.5 h-3.5 text-slate-600" /> Shipping
+                </>
+              )}
+            </span>
+          </div>
+
           {customerEmail && (
             <div className="flex justify-between items-center border-t border-slate-100 pt-2">
               <span className="text-slate-400">Billed To:</span>
@@ -61,22 +80,39 @@ export default function SuccessReceipt({
             </div>
           )}
 
-          {/* Shipping Address Section */}
-          {shippingDetails && (
-            <div className="border-t border-slate-200 pt-3 mt-2">
-              <span className="text-slate-400 block mb-1 uppercase font-bold text-[10px]"></span>
+          {/* Conditional Section: Local Pickup Address vs Shipping Address */}
+          {deliveryMethod === 'pickup' ? (
+            <div className="border-t border-slate-200 pt-3 mt-2 bg-amber-50/50 p-2.5 border border-amber-100">
+              <span className="text-amber-800 block mb-1 uppercase font-bold text-[10px]">
+                Warehouse Pickup Location:
+              </span>
               <div className="text-slate-700 space-y-0.5">
-                {shippingDetails.name && <p className="font-bold text-slate-900">{shippingDetails.name}</p>}
-                {shippingDetails.address?.line1 && <p>{shippingDetails.address.line1}</p>}
-                {shippingDetails.address?.line2 && <p>{shippingDetails.address.line2}</p>}
-                <p>
-                  {[shippingDetails.address?.city, shippingDetails.address?.state, shippingDetails.address?.postal_code]
-                    .filter(Boolean)
-                    .join(', ')}
+                <p className="font-bold text-slate-900">Almacén Local Principal</p>
+                <p>Av. Principal #123, Zona Industrial</p>
+                <p className="text-[10px] text-amber-700 mt-1 font-sans">
+                  * Present this receipt and a valid ID upon arrival.
                 </p>
-                {shippingDetails.address?.country && <p className="uppercase">{shippingDetails.address.country}</p>}
               </div>
             </div>
+          ) : (
+            shippingDetails && (
+              <div className="border-t border-slate-200 pt-3 mt-2">
+                <span className="text-slate-400 block mb-1 uppercase font-bold text-[10px]">
+                  Shipping Address:
+                </span>
+                <div className="text-slate-700 space-y-0.5">
+                  {shippingDetails.name && <p className="font-bold text-slate-900">{shippingDetails.name}</p>}
+                  {shippingDetails.address?.line1 && <p>{shippingDetails.address.line1}</p>}
+                  {shippingDetails.address?.line2 && <p>{shippingDetails.address.line2}</p>}
+                  <p>
+                    {[shippingDetails.address?.city, shippingDetails.address?.state, shippingDetails.address?.postal_code]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </p>
+                  {shippingDetails.address?.country && <p className="uppercase">{shippingDetails.address.country}</p>}
+                </div>
+              </div>
+            )
           )}
         </div>
       )}

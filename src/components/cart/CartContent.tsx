@@ -2,7 +2,7 @@
 
 import { useCartStore } from '@/store/useCartStore';
 import Image from 'next/image';
-import { Trash2, Plus, Minus } from 'lucide-react';
+import { Trash2, Plus, Minus, Truck, Store } from 'lucide-react';
 import { useUser, SignInButton } from '@clerk/nextjs';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -10,8 +10,11 @@ export default function CartContent() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCartStore();
   const { isSignedIn, user } = useUser();
   const [loading, setLoading] = useState(false);
+  
+  // Estado para el método de entrega ('shipping' o 'pickup')
+  const [deliveryMethod, setDeliveryMethod] = useState<'shipping' | 'pickup'>('shipping');
 
-  // Función para manejar el checkout de Stripe enviando el email del usuario
+  // Función para manejar el checkout de Stripe enviando el email y el método de entrega
   const handleCheckout = useCallback(async () => {
     try {
       setLoading(true);
@@ -22,7 +25,8 @@ export default function CartContent() {
         },
         body: JSON.stringify({ 
           items,
-          email: user?.primaryEmailAddress?.emailAddress // Pasamos el correo de Clerk
+          email: user?.primaryEmailAddress?.emailAddress,
+          deliveryMethod // 👈 Mandamos la opción seleccionada
         }),
       });
 
@@ -38,7 +42,7 @@ export default function CartContent() {
       console.error('Error de red:', error);
       setLoading(false);
     }
-  }, [items, user]);
+  }, [items, user, deliveryMethod]);
 
   // Si el usuario acaba de iniciar sesión y venía de intentar pagar, disparamos el checkout automáticamente
   useEffect(() => {
@@ -140,6 +144,50 @@ export default function CartContent() {
         })}
       </div>
 
+      {/* Selector de Método de Entrega (Shipping vs Local Pickup) */}
+      <div className="mb-6 space-y-2">
+        <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">
+          Delivery Method
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setDeliveryMethod('shipping')}
+            className={`flex items-center justify-center gap-2 p-3 border text-xs font-mono font-bold uppercase transition-all ${
+              deliveryMethod === 'shipping'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <Truck className="w-4 h-4" />
+            Shipping
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setDeliveryMethod('pickup')}
+            className={`flex items-center justify-center gap-2 p-3 border text-xs font-mono font-bold uppercase transition-all ${
+              deliveryMethod === 'pickup'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <Store className="w-4 h-4" />
+            Local Pickup
+          </button>
+        </div>
+
+        {/* Nota informativa si eligen local pickup */}
+        {deliveryMethod === 'pickup' && (
+          <div className="bg-amber-50 border border-amber-200 p-3 text-[11px] font-mono text-amber-900">
+            <span className="font-bold block uppercase mb-0.5">📍 Warehouse Location:</span>
+            <p>Your items will be ready for pickup at our local warehouse:</p>
+            <p className="font-bold mt-1 text-slate-900">Almacén Local Principal</p>
+            <p>Av. Principal #123, Zona Industrial</p>
+          </div>
+        )}
+      </div>
+
       {/* Sección de Total y Checkout */}
       <div className="space-y-4 pb-10">
         <div className="flex justify-between items-center bg-slate-50 border border-slate-200/80 p-4">
@@ -157,7 +205,7 @@ export default function CartContent() {
             disabled={loading || items.length === 0}
             className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 hover:bg-slate-800"
           >
-            {loading ? 'Checking out...' : 'Proceed to Checkout'}
+            {loading ? 'Checking out...' : `Proceed to Checkout`}
           </button>
         ) : (
           <div onClick={handleSignInClick}>

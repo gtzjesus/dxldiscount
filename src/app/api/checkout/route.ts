@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cuerpo de petición inválido' }, { status: 400 });
     }
 
-    const { items, email } = body;
+    const { items, email, deliveryMethod } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
@@ -47,19 +47,21 @@ export async function POST(req: Request) {
       quantity: item.quantity,
     }));
 
-    // 2. CREAR LA SESIÓN EN STRIPE ANTES DE INSERTAR EN SUPABASE
+    // 2. CREAR LA SESIÓN EN STRIPE ANTES DE INSERTAR EN SUPABASE (Estructura original idéntica)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
       customer_email: email || undefined,
-      shipping_address_collection: {
+      // Solo pedimos dirección de envío si el método es 'shipping'
+      shipping_address_collection: deliveryMethod === 'pickup' ? undefined : {
         allowed_countries: ['US', 'MX'],
       },
       success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/cart`,
       metadata: {
         clerkUserId: userId,
+        deliveryMethod: deliveryMethod || 'shipping',
       },
     });
 
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
           amount_total: totalAmount,
           status: 'pending',
           items_json: items,
-          stripe_session_id: session.id, // Vinculamos desde el inicio
+          stripe_session_id: session.id,
         },
       ])
       .select()
@@ -94,6 +96,7 @@ export async function POST(req: Request) {
       metadata: {
         clerkUserId: userId,
         supabaseOrderId: String(orderData.id),
+        deliveryMethod: deliveryMethod || 'shipping',
       },
     });
 
