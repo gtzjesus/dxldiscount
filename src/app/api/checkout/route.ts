@@ -24,7 +24,6 @@ export async function POST(req: Request) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    // Usamos service role key para evitar pedos de RLS al insertar del lado del servidor
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
@@ -35,7 +34,36 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const totalAmount = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
 
-    // Inserción en Supabase usando 'amount_total' que es como quedó en la tabla limpia
+    // 1. PREPARAR ITEMS PARA STRIPE PRIMERO
+    const lineItems = items.map((item: any) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.name,
+          images: item.imageUrl ? [item.imageUrl] : [],
+        },
+        unit_amount: Math.round(item.price * 100),
+      },
+      quantity: item.quantity,
+    }));
+
+    // 2. CREAR LA SESIÓN EN STRIPE ANTES DE INSERTAR EN SUPABASE
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      customer_email: email || undefined,
+      shipping_address_collection: {
+        allowed_countries: ['US', 'MX'],
+      },
+      success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get('origin')}/cart`,
+      metadata: {
+        clerkUserId: userId,
+      },
+    });
+
+    // 3. INSERTAR EN SUPABASE USANDO EL SESSION ID DE STRIPE COMO CANDADO
     const { data: orderData, error: dbError } = await supabase
       .from('orders')
       .insert([
@@ -43,9 +71,10 @@ export async function POST(req: Request) {
           user_id: userId,
           clerk_user_id: userId,
           customer_email: email || '',
-          amount_total: totalAmount, // Corregido al nombre exacto de la tabla
+          amount_total: totalAmount,
           status: 'pending',
           items_json: items,
+          stripe_session_id: session.id, // Vinculamos desde el inicio
         },
       ])
       .select()
@@ -60,41 +89,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No se pudo generar el registro de la orden' }, { status: 500 });
     }
 
-    // Preparar items para Stripe (tal cual lo tenías)
-    const lineItems = items.map((item: any) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-          images: item.imageUrl ? [item.imageUrl] : [],
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity,
-    }));
-
-    // Crear sesión en Stripe (tal cual lo tenías)
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      customer_email: email || undefined,
-      shipping_address_collection: {
-        allowed_countries: ['US', 'MX'],
-      },
-      success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/cart`,
+    // Actualizamos los metadata en Stripe con el ID real de Supabase ya creado
+    await stripe.checkout.sessions.update(session.id, {
       metadata: {
         clerkUserId: userId,
         supabaseOrderId: String(orderData.id),
       },
     });
-
-    // Actualizar la orden con el stripe_session_id
-    await supabase
-      .from('orders')
-      .update({ stripe_session_id: session.id })
-      .eq('id', orderData.id);
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {

@@ -157,7 +157,7 @@ export default function CartContent() {
             disabled={loading || items.length === 0}
             className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 hover:bg-slate-800"
           >
-            {loading ? 'Redirecting to Stripe...' : 'Proceed to Checkout'}
+            {loading ? 'Checking out...' : 'Proceed to Checkout'}
           </button>
         ) : (
           <div onClick={handleSignInClick}>
