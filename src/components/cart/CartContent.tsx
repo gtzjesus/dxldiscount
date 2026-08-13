@@ -15,9 +15,22 @@ export default function CartContent() {
   const [deliveryMethod, setDeliveryMethod] = useState<'shipping' | 'pickup'>('shipping');
 
   // Función para manejar el checkout de Stripe enviando el email y el método de entrega
-  const handleCheckout = useCallback(async () => {
+const handleCheckout = useCallback(async () => {
+    if (!isSignedIn) {
+      alert('Por favor inicia sesión para continuar');
+      return;
+    }
+
+    if (items.length === 0) {
+      alert('Tu carrito está vacío');
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      const userEmail = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
+
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
@@ -25,24 +38,29 @@ export default function CartContent() {
         },
         body: JSON.stringify({ 
           items,
-          email: user?.primaryEmailAddress?.emailAddress,
-          deliveryMethod // 👈 Mandamos la opción seleccionada
+          email: userEmail,
+          deliveryMethod
         }),
       });
 
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.error || 'Error desconocido en el servidor');
+      }
+
       if (data.url) {
-        window.location.href = data.url; // Redirige a la pasarela de Stripe
+        window.location.href = data.url;
       } else {
-        alert(data.error || 'Hubo un error al procesar el pago');
+        alert('No se generó la URL de pago');
         setLoading(false);
       }
-    } catch (error) {
-      console.error('Error de red:', error);
+    } catch (error: any) {
+      console.error('Error en checkout:', error);
+      alert(error.message || 'Error de red al procesar el pago');
       setLoading(false);
     }
-  }, [items, user, deliveryMethod]);
+  }, [items, user, isSignedIn, deliveryMethod]);
 
   // Si el usuario acaba de iniciar sesión y venía de intentar pagar, disparamos el checkout automáticamente
   useEffect(() => {
