@@ -71,8 +71,10 @@ export default function OrderCard({ order }: OrderCardProps) {
             <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
               <Store className="w-3 h-3" /> Local Pickup
             </span>
-            <p className="font-bold text-slate-900">Almacén Local Principal</p>
+            <p className="font-bold text-slate-900">Warehouse Location</p>
             <p>Av. Principal #123, Zona Industrial</p>
+            <p>Open M-F, 10am-2pm </p>
+            
           </div>
         ) : (
           <div>
