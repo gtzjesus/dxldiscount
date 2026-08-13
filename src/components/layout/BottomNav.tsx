@@ -23,8 +23,8 @@ export default function BottomNav() {
   }, []);
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[100] w-full max-w-2xl">
-      <div className="flex items-center justify-around bg-[#121212]/95 backdrop-blur-xl border-t border-zinc-800 p-2 shadow-2xl">
+    <nav className="fixed bottom-0 left-0 z-[100] w-full">
+      <div className="flex items-center justify-around bg-[#121212]/95 backdrop-blur-xl border-t border-zinc-800 py-1.5 px-2 shadow-2xl w-full">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const isCart = item.href === '/cart';
@@ -33,41 +33,41 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative p-2 group flex flex-col items-center justify-center min-w-[64px]"
+              className="relative py-1 px-2 group flex flex-col items-center justify-center min-w-[56px]"
             >
-              {/* Vibrant orange glow effect for active tab */}
+              {/* Iron Volt Yellow glow effect for active tab */}
               {isActive && (
-                <div className="absolute inset-0 blur-md rounded-xl pointer-events-none bg-orange-500/15" />
+                <div className="absolute inset-0 blur-md rounded-xl pointer-events-none bg-amber-400/15" />
               )}
 
               {/* Element Container */}
               <div className="relative flex flex-col items-center z-10">
                 <div className="relative">
                   <item.icon
-                    className={`w-5 h-5 transition-colors duration-200 ${
-                      isActive ? 'text-orange-500' : 'text-zinc-500 group-hover:text-zinc-300'
+                    className={`w-4 h-4 transition-colors duration-200 ${
+                      isActive ? 'text-amber-400' : 'text-zinc-500 group-hover:text-zinc-300'
                     }`}
                   />
                   
                   {/* Cart Item Badge */}
                   {isCart && mounted && totalItems > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-orange-500 text-black font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1.5 -right-2.5 bg-amber-400 text-black font-extrabold text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
                       {totalItems}
                     </span>
                   )}
                 </div>
 
                 <span
-                  className={`text-[8px] mt-1 font-mono uppercase tracking-widest transition-colors duration-200 ${
-                    isActive ? 'text-orange-500 font-bold' : 'text-zinc-500'
+                  className={`text-[7px] mt-0.5 font-mono uppercase tracking-widest transition-colors duration-200 ${
+                    isActive ? 'text-amber-400 font-bold' : 'text-zinc-500'
                   }`}
                 >
                   {item.name}
                 </span>
 
-                {/* Active Indicator Dot/Line */}
+                {/* Active Indicator Line */}
                 {isActive && (
-                  <div className="h-[2px] w-3 mt-0.5 rounded-full bg-orange-500" />
+                  <div className="h-[2px] w-2.5 mt-0.5 rounded-full bg-amber-400" />
                 )}
               </div>
             </Link>

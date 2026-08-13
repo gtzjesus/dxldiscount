@@ -10,9 +10,9 @@ export default async function UserOrdersPage() {
   if (!userId) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
-        <p className="font-mono text-xs text-slate-600 mb-4">Please sign in to view your orders.</p>
+        <p className="font-mono text-xs text-slate-600 mb-4">Get a new order going today!</p>
         <Link href="/" className="bg-black text-white text-xs font-mono uppercase tracking-widest px-6 py-3">
-          Return Home
+          start shopping
         </Link>
       </div>
     );

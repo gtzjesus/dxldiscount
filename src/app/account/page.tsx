@@ -39,9 +39,9 @@ export default function AccountPage() {
             <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto mb-3 text-slate-400">
               <Shield className="w-6 h-6" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900 mb-1">Guest Session</h2>
-            <p className="text-xs text-slate-500 font-mono mb-4 uppercase">
-              Sign in to sync your profile and orders across devices.
+            <h2 className="text-sm font-bold text-slate-900 mb-1">Hello user</h2>
+            <p className="text-xs text-slate-500 font-mono mb-4 ">
+              Sign in to see your profile/orders across devices.
             </p>
           </div>
         )}

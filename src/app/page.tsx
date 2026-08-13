@@ -53,7 +53,7 @@ export default function HomePage() {
   }, [products, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6">
+    <div className="min-h-screen bg-slate-50">
       <main className="w-full">
         {loading ? (
           <div className="flex items-center justify-center py-20">
