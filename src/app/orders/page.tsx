@@ -59,7 +59,7 @@ export default async function UserOrdersPage() {
             <div>
               <Link 
                 href="/" 
-                className="inline-block bg-black text-white text-xs font-mono uppercase tracking-widest px-6 py-3 transition-opacity hover:opacity-80"
+                className="inline-block bg-black text-white text-xs font-mono tracking-widest px-6 py-3 transition-opacity hover:opacity-80"
               >
                 Start Shopping
               </Link>
