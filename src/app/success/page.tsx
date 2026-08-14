@@ -23,39 +23,58 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   if (sessionId) {
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      customerEmail = session.customer_details?.email || '';
+      customerEmail = session.customer_details?.email || session.metadata?.customerEmail || '';
       amountTotal = session.amount_total ? session.amount_total / 100 : 0;
       paymentStatus = session.payment_status?.toUpperCase() || 'SUCCESS';
 
-      const orderId = session.metadata?.supabaseOrderId;
       deliveryMethod = session.metadata?.deliveryMethod || 'shipping';
+      const clerkUserId = session.metadata?.clerkUserId;
+      const itemsJsonStr = session.metadata?.itemsJson;
 
       const sessionAny = session as any;
       shippingDetails = sessionAny.shipping_details || sessionAny.customer_details;
 
-      if (orderId) {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        if (supabaseUrl && supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey);
+      if (supabaseUrl && supabaseKey && sessionId) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-          // Si es pickup se queda en 'pending' para que el empleado la gestione/entregue,
-          // si es shipping pasa a 'paid'. Todo esto actualizando UNICAMENTE la orden existente.
-          const newStatus = deliveryMethod === 'pickup' ? 'pending' : 'paid';
+        // 1. REVISAR SI YA EXISTE UNA ORDEN CON ESTE SESSION ID (Evita duplicados si recargan la página)
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('stripe_session_id', sessionId)
+          .single();
 
-          await supabase
-            .from('orders')
-            .update({
-              status: newStatus,
-              shipping_details: deliveryMethod === 'pickup' ? null : shippingDetails,
+        if (!existingOrder) {
+          // 2. SI NO EXISTE, LA CREAMOS AQUÍ POR PRIMERA VEZ (Solo si el pago fue real)
+          let parsedItems = [];
+          try {
+            parsedItems = itemsJsonStr ? JSON.parse(itemsJsonStr) : [];
+          } catch (e) {
+            parsedItems = [];
+          }
+
+          // Definimos el estado inicial según el método de entrega
+          const initialStatus = deliveryMethod === 'pickup' ? 'pending_pickup' : 'pending_shipping';
+
+          await supabase.from('orders').insert([
+            {
+              user_id: clerkUserId || 'guest',
+              clerk_user_id: clerkUserId || 'guest',
+              customer_email: customerEmail,
+              amount_total: amountTotal,
+              status: initialStatus,
+              items_json: parsedItems,
               stripe_session_id: sessionId,
-            })
-            .eq('id', orderId);
+              shipping_details: deliveryMethod === 'pickup' ? null : shippingDetails,
+            },
+          ]);
         }
       }
     } catch (error) {
-      console.error('Error retrieving Stripe session or updating DB:', error);
+      console.error('Error procesando la sesión de Stripe en Success:', error);
     }
   }
 
