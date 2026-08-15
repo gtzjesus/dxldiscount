@@ -27,9 +27,16 @@ export default defineType({
     }),
     defineField({
       name: 'price',
-      title: 'Price ($USD)',
+      title: 'Selling Price ($USD) - Tu precio',
       type: 'number',
       validation: (Rule) => Rule.required().min(0),
+    }),
+    defineField({
+      name: 'originalPrice',
+      title: 'Original / Retail Price ($USD)',
+      type: 'number',
+      description: 'El precio original de tienda (para mostrar descuento y comparar)',
+      validation: (Rule) => Rule.min(0),
     }),
     defineField({
       name: 'stock',
@@ -78,12 +85,15 @@ export default defineType({
       title: 'name',
       media: 'image',
       price: 'price',
+      originalPrice: 'originalPrice',
       itemNumber: 'itemNumber',
     },
-    prepare({ title, media, price, itemNumber }) {
+    prepare({ title, media, price, originalPrice, itemNumber }) {
+      const priceDisplay = price !== undefined ? `$${price}` : 'No price';
+      const originalDisplay = originalPrice ? ` (Retail: $${originalPrice})` : '';
       return {
         title: title ? `${title} (${itemNumber})` : 'Untitled',
-        subtitle: price !== undefined ? `$${price}` : 'No price set',
+        subtitle: `${priceDisplay}${originalDisplay}`,
         media,
       };
     },
