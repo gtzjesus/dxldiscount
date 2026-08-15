@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import ProductGrid from '@/components/products/ProductGrid';
-import ProductFilterNav from '@/components/products/ProductFilterNav'; // 👈 Tu componente de filtro
+import ProductFilterNav from '@/components/products/ProductFilterNav';
 import { client } from '@/sanity/lib/client';
 
 export interface Product {
@@ -53,11 +53,12 @@ export default function HomePage() {
   }, [products, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    // Agregamos pb-24 (o pb-28) aquí para dar espacio antes de que comience el BottomNav fijo
+    <div className="min-h-screen bg-slate-50 pb-24">
       <main className="w-full">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <p className="font-mono text-xs text-slate-400 animate-pulse uppercase tracking-widest">
+            <p className=" text-xs text-slate-400 animate-pulse  tracking-widest">
               Loading Dxl Products...
             </p>
           </div>
