@@ -73,6 +73,7 @@ export default function OrderCard({ order }: OrderCardProps) {
   </span>
   <p className="font-bold text-slate-900">Warehouse Location</p>
   <p>Around Red Sands</p>
+  <br />
   <p>
     Call{' '}
     <a 

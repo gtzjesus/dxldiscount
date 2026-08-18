@@ -20,6 +20,8 @@ export interface Product {
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // 👈 Categoría inicial por defecto al cargar la página (asegúrate de que coincida con Sanity)
   const [activeCategory, setActiveCategory] = useState('all');
 
   useEffect(() => {
@@ -53,12 +55,12 @@ export default function HomePage() {
   }, [products, activeCategory]);
 
   return (
-    // Agregamos pb-24 (o pb-28) aquí para dar espacio antes de que comience el BottomNav fijo
+    // Agregamos pb-24 para dar espacio antes de que comience el BottomNav fijo
     <div className="min-h-screen bg-slate-50 pb-24">
       <main className="w-full">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <p className=" text-xs text-slate-400 animate-pulse  tracking-widest">
+            <p className="text-xs text-slate-400 animate-pulse tracking-widest">
               Loading Dxl Products...
             </p>
           </div>
@@ -70,7 +72,7 @@ export default function HomePage() {
               onCategoryChange={setActiveCategory} 
               products={products} 
             />
-            {/* El Grid de productos justo abajo */}
+            {/* El Grid de productos filtrados */}
             <ProductGrid products={filteredProducts} />
           </>
         )}

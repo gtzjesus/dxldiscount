@@ -2,7 +2,7 @@
 
 import { useUser, SignInButton } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
-import { Shield, Zap } from 'lucide-react';
+import { Shield, Zap, CheckCircle2 } from 'lucide-react';
 import AccountActions from '@/components/account/AccountActions';
 
 export default function AccountPage() {
@@ -25,19 +25,37 @@ export default function AccountPage() {
       <div className="bg-slate-50 border border-slate-200/80 p-6 shadow-xs">
         {isSignedIn ? (
           <div className="space-y-6">
+            {/* Cabecera del Usuario */}
             <div className="flex items-center gap-4">
-              <UserButton appearance={{ elements: { avatarBox: 'w-16 h-16 rounded-xl border border-slate-200' } }} />
+              <UserButton appearance={{ elements: { avatarBox: 'w-16 h-16 rounded-xl border border-slate-200 shadow-xs' } }} />
               <div>
                 <h2 className="text-base font-bold text-slate-900">{user?.fullName || 'Member'}</h2>
                 <p className="text-xs font-mono text-slate-500">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-mono text-emerald-600 bg-emerald-50 px-2 py-1 border border-emerald-100">
-                <Zap className="w-3.5 h-3.5" /> Status: Authenticated & Connected
+            {/* Status Badge Limpio y Moderno */}
+            <div className="bg-emerald-50 border border-emerald-200 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-xs font-mono font-bold text-emerald-900 uppercase tracking-wide">
+                  Account Active
+                </span>
               </div>
-              <AccountActions />
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </div>
+
+            {/* Acciones de Cuenta (Diseño ordenado hacia abajo o distribuido) */}
+            <div className="pt-4 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                  Session Management
+                </span>
+                <AccountActions />
+              </div>
             </div>
           </div>
         ) : (
