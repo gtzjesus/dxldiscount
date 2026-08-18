@@ -1,44 +1,99 @@
 'use client';
 
+import { useState } from 'react';
 import { useCartStore } from '@/store/useCartStore';
+
+interface Variant {
+  _key?: string;
+  title: string;
+  price?: number;
+  stock: number;
+  itemNumber?: string;
+  variantImagesUrls?: string[]; // Asegúrate que tu GROQ query mapee esto desde Sanity
+}
 
 interface ProductDetailContentProps {
   product: {
     _id: string;
     name: string;
     price: number;
-    originalPrice?: number; // 👈 Añadido
+    originalPrice?: number;
     stock: number;
     itemNumber: string;
     description?: string;
     conditionNotes?: string;
     imageUrl?: string;
     slug: { current: string };
+    variants?: Variant[];
   };
+  onImageChange?: (url?: string) => void;
 }
 
-export default function ProductDetailContent({ product }: ProductDetailContentProps) {
+export default function ProductDetailContent({ product, onImageChange }: ProductDetailContentProps) {
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
 
-  const isAlreadyInCart = items.some((item) => item._id === product._id);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(
+    product.variants && product.variants.length > 0 ? 0 : -1
+  );
 
-  // Lógica para calcular si hay ahorro (si originalPrice es mayor al precio de venta)
-  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-  const savingsAmount = hasDiscount ? product.originalPrice! - product.price : 0;
+  // Estado para la miniatura seleccionada dentro de la variante
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+
+  const hasVariants = product.variants && product.variants.length > 0;
+  const activeVariant = hasVariants && selectedVariantIndex !== -1 ? product.variants![selectedVariantIndex] : null;
+
+  // Datos activos
+  const currentPrice = activeVariant?.price !== undefined && activeVariant?.price !== null ? activeVariant.price : product.price;
+  const currentStock = activeVariant ? activeVariant.stock : product.stock;
+  const currentItemNumber = activeVariant?.itemNumber || product.itemNumber;
+
+  // Obtener la lista de imágenes de la variante activa o la foto general del producto
+  const currentImages = activeVariant?.variantImagesUrls && activeVariant.variantImagesUrls.length > 0 
+    ? activeVariant.variantImagesUrls 
+    : product.imageUrl ? [product.imageUrl] : [];
+
+  const selectedImageUrl = currentImages[activeImageIndex] || currentImages[0];
+
+  // ID seguro para el carrito con guion bajo
+  const cartItemId = activeVariant && activeVariant._key 
+    ? `${product._id}_${activeVariant._key}` 
+    : activeVariant 
+    ? `${product._id}_${activeVariant.title.replace(/\s+/g, '-')}` 
+    : product._id;
+
+  const isAlreadyInCart = items.some((item) => item._id === cartItemId);
+
+  const hasDiscount = product.originalPrice && product.originalPrice > currentPrice;
+  const savingsAmount = hasDiscount ? product.originalPrice! - currentPrice : 0;
   const savingsPercentage = hasDiscount ? Math.round((savingsAmount / product.originalPrice!) * 100) : 0;
 
+  // Cambiar de variante
+  const handleSelectVariant = (index: number) => {
+    setSelectedVariantIndex(index);
+    setActiveImageIndex(0); // Reiniciamos a la primera foto de la nueva variante
+    
+    const variant = product.variants![index];
+    const newImage = variant.variantImagesUrls?.[0] || product.imageUrl;
+
+    if (onImageChange) {
+      onImageChange(newImage);
+    }
+  };
+
   const handleAddToCart = () => {
-    if (isAlreadyInCart || product.stock === 0) return;
+    if (isAlreadyInCart || currentStock === 0) return;
+
+    const itemName = activeVariant ? `${product.name} (${activeVariant.title})` : product.name;
 
     addItem({
-      _id: product._id,
-      name: product.name,
-      price: product.price,
-      imageUrl: product.imageUrl,
+      _id: cartItemId,
+      name: itemName,
+      price: currentPrice,
+      imageUrl: selectedImageUrl, // Se va la foto exacta que está viendo el usuario
       slug: product.slug.current,
-      itemNumber: product.itemNumber,
-      stock: product.stock
+      itemNumber: currentItemNumber,
+      stock: currentStock,
     });
   };
 
@@ -50,21 +105,18 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
           {product.name}
         </h1>
 
-        {/* Sección de Precios y Ahorro */}
+        {/* Precios y Ahorro */}
         <div className="flex flex-wrap items-baseline gap-3 mb-6">
-          {/* Tu Precio Principal */}
           <div className="text-3xl font-black text-slate-900 tracking-tight">
-            ${product.price?.toFixed(2)}
+            ${currentPrice?.toFixed(2)}
           </div>
 
-          {/* Precio Original Tachado (Retail Price) */}
           {hasDiscount && (
             <div className="text-lg font-mono font-bold text-slate-400 line-through">
               ${product.originalPrice?.toFixed(2)}
             </div>
           )}
 
-          {/* Cajita Amarilla / Dorada de Ahorro */}
           {hasDiscount && (
             <div className="bg-amber-400 text-slate-900 text-xs font-mono font-bold px-2.5 py-1 tracking-wide shadow-2xs">
               SAVE ${savingsAmount.toFixed(2)} ({savingsPercentage}%)
@@ -72,20 +124,80 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
           )}
         </div>
 
-        {/* Badges superiores */}
+        {/* SELECTOR DE VARIANTES (Títulos de VHS) */}
+        {hasVariants && (
+          <div className="mb-6 space-y-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Select Title / Option ({product.variants!.length} available):
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {product.variants!.map((variant, index) => {
+                const isSelected = selectedVariantIndex === index;
+                const isOutOfStock = variant.stock === 0;
+
+                return (
+                  <button
+                    key={variant._key || index}
+                    type="button"
+                    onClick={() => handleSelectVariant(index)}
+                    className={`px-3 py-2.5 text-xs font-bold text-left transition-all border rounded-md flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                        : isOutOfStock
+                        ? 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="truncate w-full">{variant.title}</span>
+                    <span className={`text-[10px] font-mono mt-1 ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
+                      {isOutOfStock ? 'Out of Stock' : `${variant.stock} left`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* MINIATURAS DE IMÁGENES DE LA VARIANTE (Si tiene más de una foto la variante) */}
+        {currentImages.length > 1 && (
+          <div className="mb-6 space-y-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Photos ({currentImages.length}):
+            </label>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {currentImages.map((imgUrl, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setActiveImageIndex(idx);
+                    if (onImageChange) onImageChange(imgUrl);
+                  }}
+                  className={`w-14 h-14 rounded border-2 overflow-hidden shrink-0 transition-all ${
+                    activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SKU y Stock */}
         <div className="flex items-center justify-between gap-2 mb-4">
           <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1 rounded-md">
-            SKU: {product.itemNumber || 'N/A'}
+            SKU: {currentItemNumber || 'N/A'}
           </span>
 
           <span
             className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider ${
-              product.stock > 0
+              currentStock > 0
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-rose-50 text-rose-700 border border-rose-200'
             }`}
           >
-            {product.stock > 0 ? `${product.stock} in Stock` : 'Out of Stock'}
+            {currentStock > 0 ? `${currentStock} in Stock` : 'Out of Stock'}
           </span>
         </div>
 
@@ -99,7 +211,7 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
           </p>
         </div>
 
-        {/* Notas de Condición / Open-Box */}
+        {/* Notas de Condición */}
         {product.conditionNotes && (
           <div className="bg-amber-50/70 border border-amber-200/80 p-4 mb-4">
             <h3 className="uppercase text-[10px] font-extrabold text-amber-900 tracking-wider mb-1 flex items-center gap-1.5">
@@ -112,22 +224,24 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
         )}
       </div>
 
-      {/* Botón conectado a Zustand */}
+      {/* Botón de Agregar al Carrito */}
       <button
         onClick={handleAddToCart}
-        disabled={product.stock === 0 || isAlreadyInCart}
+        disabled={currentStock === 0 || isAlreadyInCart}
         className={`w-full py-4 font-bold text-sm tracking-wide transition-all shadow-sm uppercase ${
-          product.stock === 0
+          currentStock === 0
             ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
             : isAlreadyInCart
             ? 'bg-emerald-600 text-white cursor-default'
             : 'bg-slate-900 text-white active:scale-[0.99] hover:bg-slate-800'
         }`}
       >
-        {product.stock === 0
+        {currentStock === 0
           ? 'Temporarily Out of Stock'
           : isAlreadyInCart
-          ? 'Added'
+          ? 'Added to Cart'
+          : hasVariants && selectedVariantIndex === -1
+          ? 'Select an Option'
           : 'Add to Cart'}
       </button>
     </div>

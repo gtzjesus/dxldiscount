@@ -16,14 +16,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cuerpo de petición inválido' }, { status: 400 });
     }
 
-    // 👈 Recibimos también deliveryFee del frontend
     const { items, email, deliveryMethod, taxAmount, deliveryFee } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
     }
-
-    const totalAmount = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
 
     // Preparar items para Stripe
     const lineItems = items.map((item: any) => ({
@@ -68,7 +65,13 @@ export async function POST(req: Request) {
       });
     }
 
-    // Crear sesión en Stripe guardando el deliveryMethod y los items en los metadata
+    // 🛠️ SOLUCIÓN: Guardamos solo un resumen ligero con IDs y cantidades para no rebasar los 500 caracteres de Stripe
+    const lightweightItems = items.map((item: any) => ({
+      id: item._id,
+      qty: item.quantity,
+    }));
+
+    // Crear sesión en Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'cashapp'],
       line_items: lineItems,
@@ -82,7 +85,7 @@ export async function POST(req: Request) {
       metadata: {
         clerkUserId: userId,
         deliveryMethod: deliveryMethod || 'shipping',
-        itemsJson: JSON.stringify(items),
+        itemsJson: JSON.stringify(lightweightItems), // 👈 Ahora pesa muy poco y entra perfecto en el límite
       },
     });
 

@@ -78,6 +78,46 @@ export default defineType({
       type: 'reference',
       to: [{ type: 'category' }],
     }),
+    // 👇 VARIANTES CON SOPORTE DE HASTA 2 IMÁGENES POR CINTA/OPCIÓN
+    defineField({
+      name: 'variants',
+      title: 'Product Variants (Optional - e.g. VHS Titles)',
+      type: 'array',
+      description: 'Usa esto si este producto tiene múltiples títulos o variantes.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({ name: 'title', title: 'Variant Title / Name', type: 'string', validation: Rule => Rule.required() }),
+            defineField({ name: 'price', title: 'Price (Leave empty to use main price)', type: 'number' }),
+            defineField({ name: 'stock', title: 'Stock for this variant', type: 'number', validation: Rule => Rule.required().min(0) }),
+            defineField({ name: 'itemNumber', title: 'Variant SKU / Item Number', type: 'string' }),
+            defineField({
+              name: 'variantImages',
+              title: 'Variant Images (Max 2 - e.g. Front & Back cover)',
+              type: 'array',
+              of: [{ type: 'image', options: { hotspot: true } }],
+              validation: (Rule) => Rule.max(2).error('Puedes subir un máximo de 2 imágenes por variante.'),
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              subtitle: 'price',
+              stock: 'stock',
+              media: 'variantImages.0', // Muestra la primera foto de la variante en el panel de Sanity
+            },
+            prepare({ title, subtitle, stock, media }) {
+              return {
+                title: title || 'Untitled Variant',
+                subtitle: `Stock: ${stock} | Price: ${subtitle ? `$${subtitle}` : 'Main Price'}`,
+                media,
+              };
+            },
+          },
+        },
+      ],
+    }),
   ],
 
   preview: {

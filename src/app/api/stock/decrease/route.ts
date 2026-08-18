@@ -25,19 +25,35 @@ export async function POST(req: Request) {
     const { items } = body;
 
     for (const item of items) {
-      const productId = item._id;
+      // Si el item manda la variante separada o usa el formato ID-KEY
+      const itemId = item._id;
+      const quantity = item.quantity || 1;
 
-      if (!productId) {
-        console.error('El item no trae _id de Sanity:', item);
-        continue;
+      // Verificamos si tiene una variante asociada (asumiendo que guardas variantKey o viene en el ID)
+      // Si en tu carrito el ID viene como "productId_variantKey" usando un guion bajo o un separador único:
+      const separatorIndex = itemId.indexOf('_'); // Cambiamos a guion bajo para evitar conflictos con títulos con guiones
+
+      if (separatorIndex !== -1) {
+        // --- CASO VARIANTES ---
+        const productId = itemId.substring(0, separatorIndex);
+        const variantKey = itemId.substring(separatorIndex + 1);
+
+        console.log(`Bajando ${quantity} unidades a la variante [${variantKey}] del producto: ${productId}`);
+
+        // Patch atómico directo al stock de esa variante en Sanity
+        await sanityClient
+          .patch(productId)
+          .dec({ [`variants[_key=="${variantKey}"].stock`]: quantity })
+          .commit();
+      } else {
+        // --- CASO PRODUCTO NORMAL ---
+        console.log(`Bajando ${quantity} unidades al stock del producto normal: ${itemId}`);
+
+        await sanityClient
+          .patch(itemId)
+          .dec({ stock: quantity })
+          .commit();
       }
-
-      console.log(`Bajando ${item.quantity} unidades al stock del producto: ${productId}`);
-
-      await sanityClient
-        .patch(productId)
-        .dec({ stock: item.quantity })
-        .commit();
     }
 
     return NextResponse.json({ success: true });

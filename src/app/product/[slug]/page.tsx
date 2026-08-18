@@ -1,15 +1,27 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { client } from '@/sanity/lib/client';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import ProductGallery from '@/components/product/ProductGallery';
 import ProductDetailContent from '@/components/product/ProductDetailContent';
+import { use } from 'react';
+
+interface Variant {
+  _key?: string;
+  title: string;
+  price?: number;
+  stock: number;
+  itemNumber?: string;
+  variantImagesUrls?: string[];
+}
 
 interface Product {
   _id: string;
   name: string;
   slug: { current: string };
   price: number;
-  originalPrice?: number; // 👈 1. Añadido a la interfaz
+  originalPrice?: number;
   stock: number;
   itemNumber: string;
   description?: string;
@@ -17,25 +29,7 @@ interface Product {
   imageUrl?: string;
   extraImagesUrls?: string[];
   categoryName?: string;
-}
-
-async function getProductBySlug(slug: string): Promise<Product | null> {
-  const QUERY = `*[_type == "product" && slug.current == $slug][0] {
-    _id,
-    name,
-    slug,
-    price,
-    originalPrice, // 👈 2. Pedido a Sanity
-    stock,
-    itemNumber,
-    description,
-    conditionNotes, 
-    "imageUrl": image.asset->url,
-    "extraImagesUrls": extraImages[].asset->url,
-    "categoryName": category->title
-  }`;
-
-  return await client.fetch(QUERY, { slug }, { cache: 'no-store' });
+  variants?: Variant[];
 }
 
 interface ProductPageProps {
@@ -44,9 +38,59 @@ interface ProductPageProps {
   }>;
 }
 
-export default async function ProductDetailPage({ params }: ProductPageProps) {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
+export default function ProductDetailPage({ params }: ProductPageProps) {
+  const { slug } = use(params);
+  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // 📸 ESTO ES LO QUE FALTABA: Estado para controlar la imagen principal que muestra la galería
+  const [currentMainImage, setCurrentMainImage] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      const QUERY = `*[_type == "product" && slug.current == $slug][0] {
+        _id,
+        name,
+        slug,
+        price,
+        originalPrice,
+        stock,
+        itemNumber,
+        description,
+        conditionNotes, 
+        "imageUrl": image.asset->url,
+        "extraImagesUrls": extraImages[].asset->url,
+        "categoryName": category->title,
+        "variants": variants[] {
+          _key,
+          title,
+          price,
+          stock,
+          itemNumber,
+          "variantImagesUrls": variantImages[].asset->url
+        }
+      }`;
+
+      const data = await client.fetch(QUERY, { slug });
+      if (!data) {
+        setLoading(false);
+        return;
+      }
+
+      setProduct(data);
+      // Inicializamos con la foto principal del producto o la primera de su variante por defecto
+      const defaultImage = data.variants?.[0]?.variantImagesUrls?.[0] || data.imageUrl;
+      setCurrentMainImage(defaultImage);
+      setLoading(false);
+    }
+
+    fetchProduct();
+  }, [slug]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-white flex items-center justify-center">Cargando producto...</div>;
+  }
 
   if (!product) {
     notFound();
@@ -57,7 +101,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
       <div className="w-full bg-white grid grid-cols-1 md:grid-cols-2">
         <div className="w-full bg-white">
           <ProductGallery
-            imageUrl={product.imageUrl}
+            imageUrl={currentMainImage || product.imageUrl} // 👈 Usamos la imagen dinámica
             extraImagesUrls={product.extraImagesUrls}
             productName={product.name}
           />
@@ -65,7 +109,12 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
         <div className="w-full bg-white p-6 sm:p-12 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-200">
           <div className="max-w-md mx-auto w-full">
-            <ProductDetailContent product={product} />
+            <ProductDetailContent 
+              product={product} 
+              onImageChange={(newUrl) => {
+                if (newUrl) setCurrentMainImage(newUrl); // 👈 Conectamos el cambio de variante con la galería
+              }}
+            />
           </div>
         </div>
       </div>
