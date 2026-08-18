@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
     // Crear sesión en Stripe guardando el deliveryMethod y los items en los metadata
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'cashapp'],
       line_items: lineItems,
       mode: 'payment',
       customer_email: email || undefined,
