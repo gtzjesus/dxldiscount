@@ -1,12 +1,18 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser, SignInButton } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import { Shield, Zap } from 'lucide-react';
 import AccountActions from '@/components/account/AccountActions';
 
 export default function AccountPage() {
   const { isSignedIn, user } = useUser();
+
+  // Función limpia para iniciar sesión desde Account sin disparar el checkout del carrito
+  const handleSignInClick = () => {
+    // Nos aseguramos de borrar cualquier bandera pendiente de checkout anterior
+    sessionStorage.removeItem('pending_checkout');
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-950 pb-32 pt-12 px-4 max-w-2xl mx-auto selection:bg-orange-500 selection:text-white">
@@ -40,9 +46,21 @@ export default function AccountPage() {
               <Shield className="w-6 h-6" />
             </div>
             <h2 className="text-sm font-bold text-slate-900 mb-1">Hello User</h2>
-            <p className="text-xs text-slate-500 font-mono mb-4 ">
+            <p className="text-xs text-slate-500 font-mono mb-6">
               Sign in to see your profile/orders across devices.
             </p>
+
+            {/* Al hacer clic limpiamos la bandera de pending_checkout y redirigimos de vuelta a /account */}
+            <div onClick={handleSignInClick}>
+              <SignInButton mode="modal" forceRedirectUrl="/account">
+                <button
+                  type="button"
+                  className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] hover:bg-slate-800 uppercase"
+                >
+                  Sign In / Register
+                </button>
+              </SignInButton>
+            </div>
           </div>
         )}
       </div>

@@ -16,7 +16,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cuerpo de petición inválido' }, { status: 400 });
     }
 
-    const { items, email, deliveryMethod } = body;
+    // 👈 Recibimos también deliveryFee del frontend
+    const { items, email, deliveryMethod, taxAmount, deliveryFee } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
@@ -36,6 +37,36 @@ export async function POST(req: Request) {
       },
       quantity: item.quantity,
     }));
+
+    // Agregar el costo de envío (Delivery Fee) a Stripe si es mayor a 0
+    if (deliveryFee && deliveryFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Standard Shipping Fee',
+            images: [],
+          },
+          unit_amount: Math.round(deliveryFee * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    // Agregar el impuesto calculado como una línea adicional en Stripe si es mayor a 0
+    if (taxAmount && taxAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Estimated Sales Tax (8.25%)',
+            images: [],
+          },
+          unit_amount: Math.round(taxAmount * 100),
+        },
+        quantity: 1,
+      });
+    }
 
     // Crear sesión en Stripe guardando el deliveryMethod y los items en los metadata
     const session = await stripe.checkout.sessions.create({

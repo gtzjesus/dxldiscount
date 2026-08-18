@@ -67,15 +67,23 @@ export default function OrderCard({ order }: OrderCardProps) {
       {/* Fulfillment Section: Pickup vs Shipping */}
       <div className="text-[11px] font-mono text-slate-600 border-t border-slate-200/60 pt-3">
         {isPickup ? (
-          <div className="bg-amber-50/50 p-2 border border-amber-100">
-            <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
-              <Store className="w-3 h-3" /> Local Pickup
-            </span>
-            <p className="font-bold text-slate-900">Warehouse Location</p>
-            <p>Av. Principal #123, Zona Industrial</p>
-            <p>Open M-F, 10am-2pm </p>
-            
-          </div>
+<div className="bg-amber-50/50 p-2 border border-amber-100">
+  <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
+    <Store className="w-3 h-3" /> Local Pickup
+  </span>
+  <p className="font-bold text-slate-900">Warehouse Location</p>
+  <p>Around Red Sands</p>
+  <p>
+    Call{' '}
+    <a 
+      href="tel:9154719129" 
+      className="font-bold text-slate-900 underline hover:text-amber-600 transition-colors"
+    >
+      915-471-9129
+    </a>{' '}
+    to confirm the best time for you to pick up your order.
+  </p>
+</div>
         ) : (
           <div>
             <span className="text-slate-400 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">

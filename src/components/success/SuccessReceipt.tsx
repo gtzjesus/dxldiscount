@@ -82,18 +82,24 @@ export default function SuccessReceipt({
 
           {/* Conditional Section: Local Pickup Address vs Shipping Address */}
           {deliveryMethod === 'pickup' ? (
-            <div className="border-t border-slate-200 pt-3 mt-2 bg-amber-50/50 p-2.5 border border-amber-100">
-              <span className="text-amber-800 block mb-1 uppercase font-bold text-[10px]">
-                Warehouse Pickup Location:
-              </span>
-              <div className="text-slate-700 space-y-0.5">
-                <p className="font-bold text-slate-900">Almacén Local Principal</p>
-                <p>Av. Principal #123, Zona Industrial</p>
-                <p className="text-[10px] text-amber-700 mt-1 font-sans">
-                  * Present this receipt and a valid ID upon arrival.
-                </p>
-              </div>
-            </div>
+     <div className="bg-amber-50/50 p-2 border border-amber-100">
+  <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
+    <Store className="w-3 h-3" /> Local Pickup
+  </span>
+  <p className="font-bold text-slate-900">Warehouse Location</p>
+  <p>Around Red Sands</p>
+  <br />
+  <p>
+    Call{' '}
+    <a 
+      href="tel:9154719129" 
+      className="font-bold text-slate-900 underline hover:text-amber-600 transition-colors"
+    >
+      915-471-9129
+    </a>{' '}
+    to confirm the best time for you to pick up your order.
+  </p>
+</div>
           ) : (
             shippingDetails && (
               <div className="border-t border-slate-200 pt-3 mt-2">

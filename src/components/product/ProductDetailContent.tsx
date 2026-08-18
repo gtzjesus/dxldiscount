@@ -7,10 +7,11 @@ interface ProductDetailContentProps {
     _id: string;
     name: string;
     price: number;
+    originalPrice?: number; // 👈 Añadido
     stock: number;
     itemNumber: string;
     description?: string;
-    conditionNotes?: string; // <--- Añadido a la interfaz
+    conditionNotes?: string;
     imageUrl?: string;
     slug: { current: string };
   };
@@ -20,8 +21,12 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
 
-  // Verificamos si este producto ya está agregado en el carrito
   const isAlreadyInCart = items.some((item) => item._id === product._id);
+
+  // Lógica para calcular si hay ahorro (si originalPrice es mayor al precio de venta)
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const savingsAmount = hasDiscount ? product.originalPrice! - product.price : 0;
+  const savingsPercentage = hasDiscount ? Math.round((savingsAmount / product.originalPrice!) * 100) : 0;
 
   const handleAddToCart = () => {
     if (isAlreadyInCart || product.stock === 0) return;
@@ -45,12 +50,29 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
           {product.name}
         </h1>
 
-        {/* Precio destacado */}
-        <div className="text-3xl font-black text-slate-900 tracking-tight mb-6">
-          ${product.price?.toFixed(2)}
+        {/* Sección de Precios y Ahorro */}
+        <div className="flex flex-wrap items-baseline gap-3 mb-6">
+          {/* Tu Precio Principal */}
+          <div className="text-3xl font-black text-slate-900 tracking-tight">
+            ${product.price?.toFixed(2)}
+          </div>
+
+          {/* Precio Original Tachado (Retail Price) */}
+          {hasDiscount && (
+            <div className="text-lg font-mono font-bold text-slate-400 line-through">
+              ${product.originalPrice?.toFixed(2)}
+            </div>
+          )}
+
+          {/* Cajita Amarilla / Dorada de Ahorro */}
+          {hasDiscount && (
+            <div className="bg-amber-400 text-slate-900 text-xs font-mono font-bold px-2.5 py-1 tracking-wide shadow-2xs">
+              SAVE ${savingsAmount.toFixed(2)} ({savingsPercentage}%)
+            </div>
+          )}
         </div>
 
-              {/* Badges superiores */}
+        {/* Badges superiores */}
         <div className="flex items-center justify-between gap-2 mb-4">
           <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1 rounded-md">
             SKU: {product.itemNumber || 'N/A'}
@@ -77,10 +99,10 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
           </p>
         </div>
 
-        {/* Notas de Condición / Open-Box (Solo se muestra si el campo tiene texto) */}
+        {/* Notas de Condición / Open-Box */}
         {product.conditionNotes && (
           <div className="bg-amber-50/70 border border-amber-200/80 p-4 mb-4">
-            <h3 className="uppercase text-[10px] font-extrabold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <h3 className="uppercase text-[10px] font-extrabold text-amber-900 tracking-wider mb-1 flex items-center gap-1.5">
               <span>⚠️</span> Condition & Package Notes
             </h3>
             <p className="uppercase text-amber-800 text-xs leading-relaxed whitespace-pre-line">
@@ -94,7 +116,7 @@ export default function ProductDetailContent({ product }: ProductDetailContentPr
       <button
         onClick={handleAddToCart}
         disabled={product.stock === 0 || isAlreadyInCart}
-        className={`w-full py-4  font-bold text-sm tracking-wide transition-all shadow-sm ${
+        className={`w-full py-4 font-bold text-sm tracking-wide transition-all shadow-sm uppercase ${
           product.stock === 0
             ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
             : isAlreadyInCart

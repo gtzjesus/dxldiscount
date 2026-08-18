@@ -2,20 +2,38 @@
 
 import { useCartStore } from '@/store/useCartStore';
 import Image from 'next/image';
-import { Trash2, Plus, Minus, Truck, Store } from 'lucide-react';
+import { Trash2, Plus, Minus, Truck, Store, CheckCircle2 } from 'lucide-react';
 import { useUser, SignInButton } from '@clerk/nextjs';
 import { useState, useEffect, useCallback } from 'react';
+
+// Tasa de impuesto local (8.25% para El Paso, TX)
+const TAX_RATE = 0.0825;
+const FREE_SHIPPING_THRESHOLD = 75;
+const STANDARD_SHIPPING_COST = 7.00;
 
 export default function CartContent() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCartStore();
   const { isSignedIn, user } = useUser();
   const [loading, setLoading] = useState(false);
-  
+
   // Estado para el método de entrega ('shipping' o 'pickup')
   const [deliveryMethod, setDeliveryMethod] = useState<'shipping' | 'pickup'>('shipping');
 
-  // Función para manejar el checkout de Stripe enviando el email y el método de entrega
-const handleCheckout = useCallback(async () => {
+  // Cálculos de costos
+  const subtotal = totalPrice();
+  
+  // Si elige pickup o si el subtotal es >= 75, el envío es 0. De lo contrario, cuesta $7.00
+  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (isFreeShipping ? 0 : STANDARD_SHIPPING_COST);
+  
+  const taxAmount = subtotal * TAX_RATE;
+  const finalTotal = subtotal + taxAmount + deliveryFee;
+
+  // Cuánto le falta para el envío gratis
+  const amountNeededForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
+
+  // Función para manejar el checkout de Stripe
+  const handleCheckout = useCallback(async () => {
     if (!isSignedIn) {
       alert('Por favor inicia sesión para continuar');
       return;
@@ -28,7 +46,7 @@ const handleCheckout = useCallback(async () => {
 
     try {
       setLoading(true);
-      
+
       const userEmail = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
 
       const response = await fetch('/api/checkout', {
@@ -39,7 +57,9 @@ const handleCheckout = useCallback(async () => {
         body: JSON.stringify({ 
           items,
           email: userEmail,
-          deliveryMethod
+          deliveryMethod,
+          taxAmount,
+          deliveryFee // 👈 Mandamos el costo de envío calculado al backend
         }),
       });
 
@@ -60,9 +80,9 @@ const handleCheckout = useCallback(async () => {
       alert(error.message || 'Error de red al procesar el pago');
       setLoading(false);
     }
-  }, [items, user, isSignedIn, deliveryMethod]);
+  }, [items, user, isSignedIn, deliveryMethod, taxAmount, deliveryFee]);
 
-  // Si el usuario acaba de iniciar sesión y venía de intentar pagar, disparamos el checkout automáticamente
+  // Si el usuario acaba de iniciar sesión y venía de intentar pagar
   useEffect(() => {
     const shouldCheckout = sessionStorage.getItem('pending_checkout');
     if (isSignedIn && shouldCheckout === 'true' && items.length > 0 && !loading) {
@@ -71,16 +91,15 @@ const handleCheckout = useCallback(async () => {
     }
   }, [isSignedIn, items.length, loading, handleCheckout]);
 
-  // Guardamos la bandera antes de que Clerk abra el modal de autenticación
   const handleSignInClick = () => {
     sessionStorage.setItem('pending_checkout', 'true');
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 pt-10 px-4 sm:px-6 max-w-xl mx-auto">
+    <div className="min-h-screen bg-white text-slate-950 pt-10 px-4 sm:px-6 max-w-xl mx-auto pb-32">
       {/* Cabecera */}
       <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-        <h1 className="text-2xl font-black tracking-tight">
+        <h1 className="text-2xl font-black tracking-tight uppercase italic text-slate-900">
           Shopping Cart
         </h1>
         <button
@@ -90,6 +109,28 @@ const handleCheckout = useCallback(async () => {
           <Trash2 className="w-3 h-3" /> Clear Cart
         </button>
       </div>
+
+      {/* Barra de Progreso para Envío Gratis */}
+      {subtotal > 0 && deliveryMethod === 'shipping' && (
+        <div className="mb-6 bg-slate-900 text-white p-3 text-xs font-mono">
+          {isFreeShipping ? (
+            <div className="flex items-center gap-2 text-amber-400 font-bold">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>🎉 You unlocked FREE Standard Shipping!</span>
+            </div>
+          ) : (
+            <div>
+              <span>Add <strong className="text-amber-400">${amountNeededForFreeShipping.toFixed(2)}</strong> more to get <strong className="text-amber-400">FREE Shipping!</strong></span>
+              <div className="w-full bg-slate-800 h-1.5 mt-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-amber-400 h-full transition-all duration-300"
+                  style={{ width: `${Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lista de Items */}
       <div className="divide-y divide-slate-100 border-b border-slate-100 mb-6">
@@ -118,7 +159,6 @@ const handleCheckout = useCallback(async () => {
                     ${(item.price * item.quantity).toFixed(2)}
                   </p>
 
-                  {/* Controles de Cantidad (+ / -) */}
                   <div className="flex items-center gap-2 mt-2">
                     <div className="flex items-center border border-slate-200 bg-white overflow-hidden shadow-xs">
                       <button
@@ -162,7 +202,7 @@ const handleCheckout = useCallback(async () => {
         })}
       </div>
 
-      {/* Selector de Método de Entrega (Shipping vs Local Pickup) */}
+      {/* Selector de Método de Entrega */}
       <div className="mb-6 space-y-2">
         <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">
           Delivery Method
@@ -180,7 +220,7 @@ const handleCheckout = useCallback(async () => {
             <Truck className="w-4 h-4" />
             Shipping
           </button>
-          
+
           <button
             type="button"
             onClick={() => setDeliveryMethod('pickup')}
@@ -194,34 +234,64 @@ const handleCheckout = useCallback(async () => {
             Local Pickup
           </button>
         </div>
-
-        {/* Nota informativa si eligen local pickup */}
-        {deliveryMethod === 'pickup' && (
-          <div className="bg-amber-50 border border-amber-200 p-3 text-[11px] font-mono text-amber-900">
-            <span className="font-bold block uppercase mb-0.5">📍 Warehouse Location:</span>
-            <p>Your items will be ready for pickup at our local warehouse:</p>
-            <p className="font-bold mt-1 text-slate-900">Almacén Local Principal</p>
-            <p>Av. Principal #123, Zona Industrial</p>
+{deliveryMethod === 'pickup' && (
+          <div className="bg-amber-50/50 p-3 border border-amber-100 text-[11px] font-mono text-amber-900 relative overflow-hidden">
+            <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
+              <Store className="w-3 h-3" /> Local Pickup
+            </span>
+            <p className="font-bold text-slate-900">Warehouse Location</p>
+            
+            {/* Contenido bloqueado / borroso hasta que compren */}
+            <div className="relative mt-1">
+              <div className="filter blur-[5px] select-none opacity-40 space-y-1 pointer-events-none">
+                <p>Around Red Sands</p>
+                <p>
+                  Call 915-471-9129 to confirm best time for you.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Sección de Total y Checkout */}
-      <div className="space-y-4 pb-10">
-        <div className="flex justify-between items-center bg-slate-50 border border-slate-200/80 p-4">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Estimated Total 
+      {/* Sección de Desglose de Precios */}
+      <div className="space-y-3 mb-6 bg-slate-50 border border-slate-200/80 p-4 text-xs">
+        <div className="flex justify-between items-center text-slate-600">
+          <span>Subtotal</span>
+          <span className="font-mono font-semibold">${subtotal.toFixed(2)}</span>
+        </div>
+
+        <div className="flex justify-between items-center text-slate-600">
+          <span>
+            Shipping {deliveryMethod === 'pickup' ? '(Pickup)' : (isFreeShipping ? '(Free 🚀)' : '($7.00)')}
           </span>
-          <span className="text-2xl font-black text-slate-900">
-            ${totalPrice().toFixed(2)}
+          <span className="font-mono font-semibold">
+            {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
           </span>
         </div>
 
+        <div className="flex justify-between items-center text-slate-600 border-b border-slate-200 pb-3">
+          <span>Estimated Tax (8.25%)</span>
+          <span className="font-mono font-semibold">${taxAmount.toFixed(2)}</span>
+        </div>
+
+        <div className="flex justify-between items-center pt-1">
+          <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            Total
+          </span>
+          <span className="text-2xl font-black text-slate-900">
+            ${finalTotal.toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Botón de Checkout */}
+      <div className="space-y-4 pb-10">
         {isSignedIn ? (
           <button
             onClick={handleCheckout}
             disabled={loading || items.length === 0}
-            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 hover:bg-slate-800"
+            className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 hover:bg-slate-800 uppercase"
           >
             {loading ? 'Checking out...' : `Proceed to Checkout`}
           </button>
@@ -230,7 +300,7 @@ const handleCheckout = useCallback(async () => {
             <SignInButton mode="modal" forceRedirectUrl="/cart">
               <button
                 type="button"
-                className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] hover:bg-slate-800"
+                className="w-full py-4 bg-slate-900 text-white font-bold text-sm tracking-wide transition-all shadow-sm active:scale-[0.99] hover:bg-slate-800 uppercase"
               >
                 Checkout
               </button>
