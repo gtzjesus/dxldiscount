@@ -38,13 +38,15 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   );
 
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
-  
-  // 🔽 Estado para controlar si se muestran todas las variantes o solo un límite inicial
+
   const [showAllVariants, setShowAllVariants] = useState<boolean>(false);
-  const INITIAL_VISIBLE_COUNT = 6; // Número máximo de variantes a mostrar antes del botón "Ver más"
+  const INITIAL_VISIBLE_COUNT = 6;
 
   const hasVariants = product.variants && product.variants.length > 0;
-  const activeVariant = hasVariants && selectedVariantIndex !== -1 ? product.variants![selectedVariantIndex] : null;
+  
+  const activeVariant = hasVariants && selectedVariantIndex !== -1 && selectedVariantIndex < product.variants!.length
+    ? product.variants![selectedVariantIndex]
+    : null;
 
   const currentPrice = (product.price === 0 && activeVariant?.price !== undefined) 
     ? activeVariant.price 
@@ -71,6 +73,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   const savingsAmount = hasDiscount ? product.originalPrice! - currentPrice : 0;
   const savingsPercentage = hasDiscount ? Math.round((savingsAmount / product.originalPrice!) * 100) : 0;
 
+  // Sincronizar imagen inicial y al cambiar de variante (reseteando al índice 0)
   useEffect(() => {
     if (onImageChange) {
       const initialImage = activeVariant?.variantImagesUrls?.[0] || product.imageUrl;
@@ -78,9 +81,19 @@ export default function ProductDetailContent({ product, onImageChange }: Product
     }
   }, [selectedVariantIndex, product, activeVariant, onImageChange]);
 
+  // Respaldo de índice al contraer la lista
+  useEffect(() => {
+    if (!showAllVariants && product.variants && product.variants.length > INITIAL_VISIBLE_COUNT) {
+      if (selectedVariantIndex >= INITIAL_VISIBLE_COUNT) {
+        setSelectedVariantIndex(0);
+        setActiveImageIndex(0);
+      }
+    }
+  }, [showAllVariants, selectedVariantIndex, product.variants]);
+
   const handleSelectVariant = (index: number) => {
     setSelectedVariantIndex(index);
-    setActiveImageIndex(0);
+    setActiveImageIndex(0); // Reinicia a la primera foto de la nueva variante
   };
 
   const handleAddToCart = () => {
@@ -99,7 +112,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
     });
   };
 
-  // Variantes visibles según si está expandido o no
   const displayedVariants = showAllVariants 
     ? product.variants 
     : product.variants?.slice(0, INITIAL_VISIBLE_COUNT);
@@ -131,7 +143,31 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           )}
         </div>
 
-        {/* SELECTOR DE VARIANTES CON LÍMITE Y BOTÓN EXPANDIR */}
+        {/* MINIATURAS DE IMÁGENES DE LA VARIANTE CORREGIDAS */}
+        {currentImages.length > 1 && (
+          <div className="mb-6 space-y-2">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {currentImages.map((imgUrl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setActiveImageIndex(idx);
+                    if (onImageChange) {
+                      onImageChange(imgUrl); // 👈 FUERZA EL CAMBIO DE LA FOTO AL PADRE AL CLICKEAR CUALQUIER MINIATURA
+                    }
+                  }}
+                  className={`w-14 h-14 rounded border-2 overflow-hidden shrink-0 transition-all ${
+                    activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {hasVariants && (
           <div className="mb-6 space-y-2">
             <div className="flex items-center justify-between">
@@ -142,7 +178,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {displayedVariants!.map((variant) => {
-                // Encontramos el índice real en el array completo original de variantes
                 const index = product.variants!.findIndex(v => v === variant);
                 const isSelected = selectedVariantIndex === index;
                 const isOutOfStock = variant.stock === 0;
@@ -169,7 +204,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
               })}
             </div>
 
-            {/* BOTÓN PARA EXPANDIR / CONTRAER */}
             {product.variants!.length > INITIAL_VISIBLE_COUNT && (
               <button
                 type="button"
@@ -178,33 +212,9 @@ export default function ProductDetailContent({ product, onImageChange }: Product
               >
                 {showAllVariants 
                   ? 'Show Less ▲' 
-                  : `Show ${hiddenVariantsCount} More Titles ▼`}
+                  : `+ Show ${hiddenVariantsCount} More Titles ▼`}
               </button>
             )}
-          </div>
-        )}
-
-        {currentImages.length > 1 && (
-          <div className="mb-6 space-y-2">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Photos ({currentImages.length}):
-            </label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {currentImages.map((imgUrl, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setActiveImageIndex(idx);
-                    if (onImageChange) onImageChange(imgUrl);
-                  }}
-                  className={`w-14 h-14 border-2 overflow-hidden shrink-0 transition-all ${
-                    activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
           </div>
         )}
 

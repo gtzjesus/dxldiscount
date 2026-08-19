@@ -44,7 +44,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // 📸 ESTO ES LO QUE FALTABA: Estado para controlar la imagen principal que muestra la galería
+  // Estado para controlar la imagen principal que muestra la galería
   const [currentMainImage, setCurrentMainImage] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       }
 
       setProduct(data);
-      // Inicializamos con la foto principal del producto o la primera de su variante por defecto
+      // Inicializamos con la primera foto de su variante por defecto o la principal
       const defaultImage = data.variants?.[0]?.variantImagesUrls?.[0] || data.imageUrl;
       setCurrentMainImage(defaultImage);
       setLoading(false);
@@ -101,7 +101,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       <div className="w-full bg-white grid grid-cols-1 md:grid-cols-2">
         <div className="w-full bg-white">
           <ProductGallery
-            imageUrl={currentMainImage || product.imageUrl} // 👈 Usamos la imagen dinámica
+            imageUrl={currentMainImage || product.imageUrl}
             extraImagesUrls={product.extraImagesUrls}
             productName={product.name}
           />
@@ -112,7 +112,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
             <ProductDetailContent 
               product={product} 
               onImageChange={(newUrl) => {
-                if (newUrl) setCurrentMainImage(newUrl); // 👈 Conectamos el cambio de variante con la galería
+                if (newUrl) setCurrentMainImage(newUrl);
               }}
             />
           </div>
