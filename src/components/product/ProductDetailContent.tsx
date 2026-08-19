@@ -38,11 +38,18 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   );
 
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  
+  // 🔽 Estado para controlar si se muestran todas las variantes o solo un límite inicial
+  const [showAllVariants, setShowAllVariants] = useState<boolean>(false);
+  const INITIAL_VISIBLE_COUNT = 6; // Número máximo de variantes a mostrar antes del botón "Ver más"
 
   const hasVariants = product.variants && product.variants.length > 0;
   const activeVariant = hasVariants && selectedVariantIndex !== -1 ? product.variants![selectedVariantIndex] : null;
 
-  const currentPrice = activeVariant?.price !== undefined && activeVariant?.price !== null ? activeVariant.price : product.price;
+  const currentPrice = (product.price === 0 && activeVariant?.price !== undefined) 
+    ? activeVariant.price 
+    : (activeVariant?.price !== undefined && activeVariant?.price !== null ? activeVariant.price : product.price);
+
   const currentStock = activeVariant ? activeVariant.stock : product.stock;
   const currentItemNumber = activeVariant?.itemNumber || product.itemNumber;
 
@@ -92,6 +99,13 @@ export default function ProductDetailContent({ product, onImageChange }: Product
     });
   };
 
+  // Variantes visibles según si está expandido o no
+  const displayedVariants = showAllVariants 
+    ? product.variants 
+    : product.variants?.slice(0, INITIAL_VISIBLE_COUNT);
+
+  const hiddenVariantsCount = (product.variants?.length || 0) - INITIAL_VISIBLE_COUNT;
+
   return (
     <div className="flex flex-col justify-between h-full space-y-6">
       <div>
@@ -117,13 +131,19 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           )}
         </div>
 
+        {/* SELECTOR DE VARIANTES CON LÍMITE Y BOTÓN EXPANDIR */}
         {hasVariants && (
           <div className="mb-6 space-y-2">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-              available titles ({product.variants!.length}):
-            </label>
-            <div className=" grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {product.variants!.map((variant, index) => {
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                available titles ({product.variants!.length}):
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {displayedVariants!.map((variant) => {
+                // Encontramos el índice real en el array completo original de variantes
+                const index = product.variants!.findIndex(v => v === variant);
                 const isSelected = selectedVariantIndex === index;
                 const isOutOfStock = variant.stock === 0;
 
@@ -132,7 +152,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                     key={variant._key || index}
                     type="button"
                     onClick={() => handleSelectVariant(index)}
-                    className={`uppercase px-3 py-2.5 text-xs font-bold text-left transition-all border -md flex flex-col justify-between ${
+                    className={`uppercase px-3 py-2.5 text-xs font-bold text-left transition-all border rounded-md flex flex-col justify-between ${
                       isSelected
                         ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
                         : isOutOfStock
@@ -148,6 +168,19 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                 );
               })}
             </div>
+
+            {/* BOTÓN PARA EXPANDIR / CONTRAER */}
+            {product.variants!.length > INITIAL_VISIBLE_COUNT && (
+              <button
+                type="button"
+                onClick={() => setShowAllVariants(!showAllVariants)}
+                className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md transition-all"
+              >
+                {showAllVariants 
+                  ? 'Show Less ▲' 
+                  : `Show ${hiddenVariantsCount} More Titles ▼`}
+              </button>
+            )}
           </div>
         )}
 
@@ -164,7 +197,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                     setActiveImageIndex(idx);
                     if (onImageChange) onImageChange(imgUrl);
                   }}
-                  className={`w-14 h-14  border-2 overflow-hidden shrink-0 transition-all ${
+                  className={`w-14 h-14 border-2 overflow-hidden shrink-0 transition-all ${
                     activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
@@ -176,12 +209,12 @@ export default function ProductDetailContent({ product, onImageChange }: Product
         )}
 
         <div className="flex items-center justify-between gap-2 mb-4">
-          <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1 ">
+          <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1">
             SKU: {currentItemNumber || 'N/A'}
           </span>
 
           <span
-            className={`text-[10px] font-extrabold px-3 py-1  uppercase tracking-wider ${
+            className={`text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider ${
               currentStock > 0
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-rose-50 text-rose-700 border border-rose-200'

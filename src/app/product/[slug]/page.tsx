@@ -89,7 +89,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   }, [slug]);
 
   if (loading) {
-    return <div className="min-h-screen bg-white flex items-center justify-center">Cargando producto...</div>;
+    return <div className="min-h-screen bg-white flex items-center justify-center">Loading product...</div>;
   }
 
   if (!product) {
