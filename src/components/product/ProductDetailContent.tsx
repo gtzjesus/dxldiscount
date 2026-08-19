@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 
 interface Variant {
@@ -9,7 +9,7 @@ interface Variant {
   price?: number;
   stock: number;
   itemNumber?: string;
-  variantImagesUrls?: string[]; // Asegúrate que tu GROQ query mapee esto desde Sanity
+  variantImagesUrls?: string[];
 }
 
 interface ProductDetailContentProps {
@@ -37,25 +37,21 @@ export default function ProductDetailContent({ product, onImageChange }: Product
     product.variants && product.variants.length > 0 ? 0 : -1
   );
 
-  // Estado para la miniatura seleccionada dentro de la variante
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
 
   const hasVariants = product.variants && product.variants.length > 0;
   const activeVariant = hasVariants && selectedVariantIndex !== -1 ? product.variants![selectedVariantIndex] : null;
 
-  // Datos activos
   const currentPrice = activeVariant?.price !== undefined && activeVariant?.price !== null ? activeVariant.price : product.price;
   const currentStock = activeVariant ? activeVariant.stock : product.stock;
   const currentItemNumber = activeVariant?.itemNumber || product.itemNumber;
 
-  // Obtener la lista de imágenes de la variante activa o la foto general del producto
   const currentImages = activeVariant?.variantImagesUrls && activeVariant.variantImagesUrls.length > 0 
     ? activeVariant.variantImagesUrls 
     : product.imageUrl ? [product.imageUrl] : [];
 
   const selectedImageUrl = currentImages[activeImageIndex] || currentImages[0];
 
-  // ID seguro para el carrito con guion bajo
   const cartItemId = activeVariant && activeVariant._key 
     ? `${product._id}_${activeVariant._key}` 
     : activeVariant 
@@ -64,21 +60,20 @@ export default function ProductDetailContent({ product, onImageChange }: Product
 
   const isAlreadyInCart = items.some((item) => item._id === cartItemId);
 
-  const hasDiscount = product.originalPrice && product.originalPrice > currentPrice;
+  const hasDiscount = product.originalPrice && product.originalPrice > 0 && product.originalPrice > currentPrice;
   const savingsAmount = hasDiscount ? product.originalPrice! - currentPrice : 0;
   const savingsPercentage = hasDiscount ? Math.round((savingsAmount / product.originalPrice!) * 100) : 0;
 
-  // Cambiar de variante
+  useEffect(() => {
+    if (onImageChange) {
+      const initialImage = activeVariant?.variantImagesUrls?.[0] || product.imageUrl;
+      onImageChange(initialImage);
+    }
+  }, [selectedVariantIndex, product, activeVariant, onImageChange]);
+
   const handleSelectVariant = (index: number) => {
     setSelectedVariantIndex(index);
-    setActiveImageIndex(0); // Reiniciamos a la primera foto de la nueva variante
-    
-    const variant = product.variants![index];
-    const newImage = variant.variantImagesUrls?.[0] || product.imageUrl;
-
-    if (onImageChange) {
-      onImageChange(newImage);
-    }
+    setActiveImageIndex(0);
   };
 
   const handleAddToCart = () => {
@@ -90,7 +85,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
       _id: cartItemId,
       name: itemName,
       price: currentPrice,
-      imageUrl: selectedImageUrl, // Se va la foto exacta que está viendo el usuario
+      imageUrl: selectedImageUrl,
       slug: product.slug.current,
       itemNumber: currentItemNumber,
       stock: currentStock,
@@ -100,12 +95,10 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   return (
     <div className="flex flex-col justify-between h-full space-y-6">
       <div>
-        {/* Nombre del producto */}
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
           {product.name}
         </h1>
 
-        {/* Precios y Ahorro */}
         <div className="flex flex-wrap items-baseline gap-3 mb-6">
           <div className="text-3xl font-black text-slate-900 tracking-tight">
             ${currentPrice?.toFixed(2)}
@@ -124,13 +117,12 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           )}
         </div>
 
-        {/* SELECTOR DE VARIANTES (Títulos de VHS) */}
         {hasVariants && (
           <div className="mb-6 space-y-2">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Select Title / Option ({product.variants!.length} available):
+              available titles ({product.variants!.length}):
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className=" grid grid-cols-2 sm:grid-cols-3 gap-2">
               {product.variants!.map((variant, index) => {
                 const isSelected = selectedVariantIndex === index;
                 const isOutOfStock = variant.stock === 0;
@@ -140,7 +132,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                     key={variant._key || index}
                     type="button"
                     onClick={() => handleSelectVariant(index)}
-                    className={`px-3 py-2.5 text-xs font-bold text-left transition-all border rounded-md flex flex-col justify-between ${
+                    className={`uppercase px-3 py-2.5 text-xs font-bold text-left transition-all border -md flex flex-col justify-between ${
                       isSelected
                         ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
                         : isOutOfStock
@@ -159,7 +151,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           </div>
         )}
 
-        {/* MINIATURAS DE IMÁGENES DE LA VARIANTE (Si tiene más de una foto la variante) */}
         {currentImages.length > 1 && (
           <div className="mb-6 space-y-2">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -173,7 +164,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                     setActiveImageIndex(idx);
                     if (onImageChange) onImageChange(imgUrl);
                   }}
-                  className={`w-14 h-14 rounded border-2 overflow-hidden shrink-0 transition-all ${
+                  className={`w-14 h-14  border-2 overflow-hidden shrink-0 transition-all ${
                     activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
@@ -184,14 +175,13 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           </div>
         )}
 
-        {/* SKU y Stock */}
         <div className="flex items-center justify-between gap-2 mb-4">
-          <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1 rounded-md">
+          <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest bg-teal-50 border border-teal-100 px-3 py-1 ">
             SKU: {currentItemNumber || 'N/A'}
           </span>
 
           <span
-            className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider ${
+            className={`text-[10px] font-extrabold px-3 py-1  uppercase tracking-wider ${
               currentStock > 0
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -201,7 +191,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           </span>
         </div>
 
-        {/* Descripción */}
         <div className="border-t border-slate-100 pt-4 mb-4">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
             Product Description
@@ -211,7 +200,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
           </p>
         </div>
 
-        {/* Notas de Condición */}
         {product.conditionNotes && (
           <div className="bg-amber-50/70 border border-amber-200/80 p-4 mb-4">
             <h3 className="uppercase text-[10px] font-extrabold text-amber-900 tracking-wider mb-1 flex items-center gap-1.5">
@@ -224,7 +212,6 @@ export default function ProductDetailContent({ product, onImageChange }: Product
         )}
       </div>
 
-      {/* Botón de Agregar al Carrito */}
       <button
         onClick={handleAddToCart}
         disabled={currentStock === 0 || isAlreadyInCart}
