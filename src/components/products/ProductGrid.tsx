@@ -22,7 +22,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
         return (
           <div
             key={product._id}
-            className={`bg-white border-b border-slate-200 ${
+            className={`uppercase bg-white border-b border-slate-200 ${
               isRightColumn ? 'border-l border-slate-200' : ''
             }`}
           >

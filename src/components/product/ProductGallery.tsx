@@ -35,7 +35,7 @@ export default function ProductGallery({
   }
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className=" flex flex-col space-y-4">
       {/* Imagen Principal Grande */}
       <div className="relative aspect-square w-full bg-white border-slate-100 overflow-hidden flex items-center justify-center p-6 shadow-sm">
         <Image
@@ -66,7 +66,7 @@ export default function ProductGallery({
                   src={imgUrl}
                   alt={`${productName} preview ${idx}`}
                   fill
-                  className="object-cover object-center"
+                  className=" object-cover object-center"
                 />
               </button>
             );
