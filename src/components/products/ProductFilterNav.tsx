@@ -17,6 +17,15 @@ export default function ProductFilterNav({ activeCategory, onCategoryChange, pro
     ];
   }, [products]);
 
+  const handleCategoryClick = (value: string) => {
+    onCategoryChange(value);
+    // Hace scroll suave hacia arriba de la página al cambiar de categoría
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <div className="sticky top-0 z-40 max-w-2xl mx-auto w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
       <div className="flex overflow-x-auto gap-2 scrollbar-hide py-3 px-4">
@@ -25,7 +34,7 @@ export default function ProductFilterNav({ activeCategory, onCategoryChange, pro
           return (
             <button
               key={cat.value}
-              onClick={() => onCategoryChange(cat.value)}
+              onClick={() => handleCategoryClick(cat.value)}
               className={`flex-shrink-0 px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-all duration-200 border ${
                 isActive
                   ? 'bg-slate-900 text-white border-slate-900 font-black'

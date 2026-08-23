@@ -237,9 +237,9 @@ export default function CartContent() {
 {deliveryMethod === 'pickup' && (
           <div className="bg-amber-50/50 p-3 border border-amber-100 text-[11px] font-mono text-amber-900 relative overflow-hidden">
             <span className="text-amber-800 flex items-center gap-1.5 uppercase font-bold text-[10px] mb-1">
-              <Store className="w-3 h-3" /> El Paso, TX. Local Pickup
+              <Store className="w-3 h-3" /> El Paso, TX. east side Local Pickup
             </span>
-            <p className="font-bold text-slate-900">Warehouse Location Revelead After Checkout</p>
+            <p className="font-bold text-slate-900">Warehouse  Location Available after Checkout</p>
             
             {/* Contenido bloqueado / borroso hasta que compren */}
             <div className="relative mt-1">

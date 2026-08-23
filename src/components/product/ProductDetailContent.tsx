@@ -43,7 +43,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
   
   const INITIAL_VISIBLE_COUNT = 6;
-  const CHARACTER_LIMIT = 120; // Límite de caracteres para colapsar la descripción
+  const CHARACTER_LIMIT = 100; // Límite de caracteres para colapsar la descripción
 
   const hasVariants = product.variants && product.variants.length > 0;
   
