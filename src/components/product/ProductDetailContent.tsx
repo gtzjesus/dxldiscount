@@ -40,7 +40,10 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
 
   const [showAllVariants, setShowAllVariants] = useState<boolean>(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
+  
   const INITIAL_VISIBLE_COUNT = 6;
+  const CHARACTER_LIMIT = 120; // Límite de caracteres para colapsar la descripción
 
   const hasVariants = product.variants && product.variants.length > 0;
   
@@ -73,6 +76,13 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   const savingsAmount = hasDiscount ? product.originalPrice! - currentPrice : 0;
   const savingsPercentage = hasDiscount ? Math.round((savingsAmount / product.originalPrice!) * 100) : 0;
 
+  // Lógica para el truncado de la descripción
+  const descriptionText = product.description || 'No detailed description available for this product.';
+  const isLongDescription = descriptionText.length > CHARACTER_LIMIT;
+  const truncatedDescription = isLongDescription && !isDescriptionExpanded
+    ? `${descriptionText.substring(0, CHARACTER_LIMIT)}...`
+    : descriptionText;
+
   // Sincronizar imagen inicial y al cambiar de variante (reseteando al índice 0)
   useEffect(() => {
     if (onImageChange) {
@@ -93,7 +103,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
 
   const handleSelectVariant = (index: number) => {
     setSelectedVariantIndex(index);
-    setActiveImageIndex(0); // Reinicia a la primera foto de la nueva variante
+    setActiveImageIndex(0);
   };
 
   const handleAddToCart = () => {
@@ -121,7 +131,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   return (
     <div className="flex flex-col justify-between h-full space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
+        <h1 className="uppercase text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
           {product.name}
         </h1>
 
@@ -154,11 +164,11 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                   onClick={() => {
                     setActiveImageIndex(idx);
                     if (onImageChange) {
-                      onImageChange(imgUrl); // 👈 FUERZA EL CAMBIO DE LA FOTO AL PADRE AL CLICKEAR CUALQUIER MINIATURA
+                      onImageChange(imgUrl);
                     }
                   }}
                   className={`w-14 h-14 rounded border-2 overflow-hidden shrink-0 transition-all ${
-                    activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
+                    activeImageIndex === idx ? 'border-slate-900 scale-105' : 'border-slate-200 opacity-70 '
                   }`}
                 >
                   <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -171,7 +181,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
         {hasVariants && (
           <div className="mb-6 space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label className=" block text-xs font-bold text-slate-500 uppercase tracking-wider">
                 available titles ({product.variants!.length}):
               </label>
             </div>
@@ -192,7 +202,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
                         ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
                         : isOutOfStock
                         ? 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                        : 'border-slate-200 bg-white text-slate-700 '
                     }`}
                   >
                     <span className="truncate w-full">{variant.title}</span>
@@ -208,7 +218,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
               <button
                 type="button"
                 onClick={() => setShowAllVariants(!showAllVariants)}
-                className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md transition-all"
+                className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 border border-slate-200 rounded-md transition-all"
               >
                 {showAllVariants 
                   ? 'Show Less ▲' 
@@ -239,8 +249,18 @@ export default function ProductDetailContent({ product, onImageChange }: Product
             Product Description
           </h3>
           <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-light">
-            {product.description || 'No detailed description available for this product.'}
+            {truncatedDescription}
           </p>
+          
+          {isLongDescription && (
+            <button
+              type="button"
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="mt-2 text-xs font-bold text-black  uppercase tracking-wide flex items-center gap-1 transition-colors"
+            >
+              {isDescriptionExpanded ? 'Read Less ▲' : 'Read More ▼'}
+            </button>
+          )}
         </div>
 
         {product.conditionNotes && (
@@ -263,7 +283,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
             ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
             : isAlreadyInCart
             ? 'bg-emerald-600 text-white cursor-default'
-            : 'bg-slate-900 text-white active:scale-[0.99] hover:bg-slate-800'
+            : 'bg-slate-900 text-white active:scale-[0.99] '
         }`}
       >
         {currentStock === 0

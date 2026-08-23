@@ -18,7 +18,7 @@ export default function ProductFilterNav({ activeCategory, onCategoryChange, pro
   }, [products]);
 
   return (
-    <div className="max-w-2xl mx-auto w-full bg-white border-b border-slate-200">
+    <div className="sticky top-0 z-40 max-w-2xl mx-auto w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
       <div className="flex overflow-x-auto gap-2 scrollbar-hide py-3 px-4">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.value;

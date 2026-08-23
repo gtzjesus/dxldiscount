@@ -65,7 +65,7 @@ export default function AccountPage() {
             </div>
             <h2 className="text-sm font-bold text-slate-900 mb-1">Hello User</h2>
             <p className="text-xs text-slate-500 font-mono mb-6">
-              Sign in to see your profile/orders across devices.
+              Sign in to see your profile and orders
             </p>
 
             {/* Al hacer clic limpiamos la bandera de pending_checkout y redirigimos de vuelta a /account */}
