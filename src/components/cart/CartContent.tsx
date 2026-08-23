@@ -116,7 +116,7 @@ export default function CartContent() {
           {isFreeShipping ? (
             <div className="flex items-center gap-2 text-amber-400 font-bold">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>🎉 You unlocked FREE Standard Shipping!</span>
+              <span>FREE Standard Shipping Unlocked!</span>
             </div>
           ) : (
             <div>
@@ -263,7 +263,7 @@ export default function CartContent() {
 
         <div className="flex justify-between items-center text-slate-600">
           <span>
-            Shipping {deliveryMethod === 'pickup' ? '(Pickup)' : (isFreeShipping ? '(Free 🚀)' : '($7.00)')}
+            Shipping {deliveryMethod === 'pickup' ? '(Pickup)' : (isFreeShipping ? '(FREE)' : '($7.00)')}
           </span>
           <span className="font-mono font-semibold">
             {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}

@@ -131,7 +131,7 @@ export default function ProductDetailContent({ product, onImageChange }: Product
   return (
     <div className="flex flex-col justify-between h-full space-y-6">
       <div>
-        <h1 className="uppercase text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
+        <h1 className="uppercase text-xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
           {product.name}
         </h1>
 
