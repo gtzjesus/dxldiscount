@@ -19,10 +19,13 @@ export default function ProductFilterNav({ activeCategory, onCategoryChange, pro
 
   const handleCategoryClick = (value: string) => {
     onCategoryChange(value);
-    // Hace scroll suave hacia arriba de la página al cambiar de categoría
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+    
+    // Forzar el scroll hacia arriba asegurando que el ciclo de renderizado haya ocurrido
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     });
   };
 
